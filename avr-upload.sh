@@ -14,7 +14,7 @@ fi
 FUSE0="0x00" # Watchdog timer 0x00
 FUSE1="0x00" # BOD 0x00
 FUSE2="0x00" # OSCCFG 0x02 = 20mhz, 0x01 = 16mhz
-FUSE5="0xE4" # SYSCFG0 0xE4
+FUSE5="0xC8" # SYSCFG0 0xE4, dont forget to pullup reset
 FUSE6="0x02" # SYSCFG1, delay code at startup by x milliseconds. x = 2^(FUSE6)
 FUSE7="0x00" # APPEND 0x0
 FUSE8="0x00" # BOOTEND 0x0
@@ -41,8 +41,8 @@ stty -F "${PORT}" 1200
 sleep 0.5
 
 avrdude -v -p$PART -c$PROGRAMMER -P$PORT -b$BAUD \
-    -D -Uflash:w:$1:e \
-    $FUSEFLAGS
+    $FUSEFLAGS \
+    -D -e -Uflash:w:$1:e
     # skip for now # -Ufusea:w:$(FUSE0):m 
     #-Uflash:w:/tmp/arduino_build_62094/sketch_jan10a.ino.hex:i
 
