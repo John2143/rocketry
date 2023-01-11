@@ -36,14 +36,17 @@ fi
 
 set -x
 
+avr-objcopy -O ihex -R .eeprom $1 $1.hex
+
 # put the microcontroller into a listening state
 stty -F "${PORT}" 1200
-sleep 0.5
+sleep .1
 
 avrdude -v -p$PART -c$PROGRAMMER -P$PORT -b$BAUD \
     $FUSEFLAGS \
-    -D -e -Uflash:w:$1:e
+    -D -e -Uflash:w:$1.hex:i
     # skip for now # -Ufusea:w:$(FUSE0):m 
     #-Uflash:w:/tmp/arduino_build_62094/sketch_jan10a.ino.hex:i
 
+#screen $PORT 9600 8n1
 set +x
