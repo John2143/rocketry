@@ -27,20 +27,7 @@ fn main() -> ! {
     direct_led()
 }
 
-///0-100
-#[derive(Copy, Clone, Debug)]
-pub struct Percent(u8);
-
-impl Percent {
-    fn new(pct: u8) -> Option<Self> {
-        (pct <= 100).then(|| Percent(pct))
-    }
-
-}
-
-
-
-pub fn duty_cycle(Percent(brightness): Percent) {
+pub fn duty_cycle(brightness: u8) {
     let porte = 0x0480 as *mut u8;
     unsafe {
         if brightness > 0 {
@@ -77,11 +64,11 @@ pub fn direct_led() -> ! {
         loop {
 
             for x in 0..1000 {
-                duty_cycle(Percent((x / 10) as u8));
+                duty_cycle((x / 10) as u8);
             }
 
             for x in (0..1000).rev() {
-                duty_cycle(Percent((x / 10) as u8));
+                duty_cycle((x / 10) as u8);
             }
         }
     }
