@@ -11,6 +11,7 @@ test = false
 bench = false
 
 [dependencies]
+#avr-oxide = { version = "0.4.0", features = ["20MHz", "arduino_nanoevery", "atmega4809"] }
 panic-halt = "0.2.0"
 
 # Configure the build for minimal size - AVRs have very little program memory

@@ -8,20 +8,33 @@ pub enum GPIO {
 }
 
 ///Input/Sense Configuration
-#[repr(u8)]
+#[derive(Copy, Clone)]
 pub enum ISC {
     ///Interrupt disabled but input buffer enabled
-    IntDisable = 0,
+    IntDisable,
     ///Interrupt enabled with sense on both edges
-    BothEdges = 1,
+    BothEdges,
     ///Interrupt enabled with sense on rising edge
-    Rising = 2,
+    Rising,
     ///Interrupt enabled with sense on falling edge
-    Falling = 3,
+    Falling,
     ///Interrupt and digital input buffer disabled
-    InputDisable = 4,
+    InputDisable,
     ///Interrupt enabled with sense on low level
-    Level = 5,
+    Level,
+}
+
+impl ISC {
+    fn val(self) -> u8 {
+        match self {
+            ISC::IntDisable => 0,
+            ISC::BothEdges => 1,
+            ISC::Rising => 2,
+            ISC::Falling => 3,
+            ISC::InputDisable => 4,
+            ISC::Level => 5,
+        }
+    }
 }
 impl GPIO {
     fn base_ptr(&self) -> *mut u8 {
@@ -101,7 +114,7 @@ impl GPIO {
     pub fn pin_ctrl_isc(&self, isc: &ISC) {
         unsafe {
             let old = self.pin_ctrl().read_volatile() & 0b1111_1000;
-            self.pin_ctrl().write_volatile(old | (*isc as u8))
+            self.pin_ctrl().write_volatile(old | isc.val())
         }
     }
 }
