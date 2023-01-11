@@ -27,6 +27,37 @@ fn main() -> ! {
     direct_led()
 }
 
+///0-100
+#[derive(Copy, Clone, Debug)]
+pub struct Percent(u8);
+
+impl Percent {
+    fn new(pct: u8) -> Option<Self> {
+        (pct <= 100).then(|| Percent(pct))
+    }
+
+}
+
+
+
+pub fn duty_cycle(Percent(brightness): Percent) {
+    let porte = 0x0480 as *mut u8;
+    unsafe {
+        if brightness > 0 {
+            porte.offset(0x05).write_volatile(1 << 2);
+        }
+        for _ in 0..(brightness) {
+            core::arch::asm!("nop");
+        }
+        if brightness < 100 {
+            porte.offset(0x06).write_volatile(1 << 2);
+        }
+        for _ in 0..(100 - brightness) {
+            core::arch::asm!("nop");
+        }
+    }
+}
+
 pub fn direct_led() -> ! {
     unsafe {
         //https://docs.arduino.cc/static/90c04d4cfb88446cafa299787bf06056/ABX00028-pinout.png
@@ -45,20 +76,12 @@ pub fn direct_led() -> ! {
         //core::ptr::write_volatile(porte.offset(0x06), 1 << 2);
         loop {
 
-            for x in 0..100 {
-                //toggle state
-                let v = x * 5;
-                let max = 500;
+            for x in 0..1000 {
+                duty_cycle(Percent((x / 10) as u8));
+            }
 
-                porte.offset(0x06).write_volatile(1 << 2);
-                for _ in 0..(v) {
-                    core::arch::asm!("nop");
-                }
-
-                porte.offset(0x05).write_volatile(1 << 2);
-                for _ in 0..(max - v) {
-                    core::arch::asm!("nop");
-                }
+            for x in (0..1000).rev() {
+                duty_cycle(Percent((x / 10) as u8));
             }
         }
     }
