@@ -1,21 +1,30 @@
-#![feature(lang_items)]
+#![feature(asm_experimental_arch)]
 #![no_std]
 #![no_main]
 
-use avr_device::atmega4809;
+use panic_halt as _;
 
-#[no_mangle]
+#[arduino_hal::entry]
 fn main() -> ! {
-    let p = atmega4809::Peripherals::take().unwrap();
 
-    p.PORTE.outset.write(|w| w.pe2().set_bit());
+    /*
+     * For examples (and inspiration), head to
+     *
+     *     https://github.com/Rahix/avr-hal/tree/main/examples
+     *
+     * NOTE: Not all examples were ported to all boards!  There is a good chance though, that code
+     * for a different board can be adapted for yours.  The Arduino Uno currently has the most
+     * examples available.
+     */
 
-    loop {
-        p.PORTE.outtgl.write(|w| w.pe2().set_bit());
-        for _ in 0..20 {
-            avr_device::asm::nop();
-        }
-    }
+    //let mut led = pins.d13.into_output();
+
+    //loop {
+        //led.toggle();
+        //arduino_hal::delay_ms(1000);
+    //}
+    //
+    direct_led()
 }
 
 pub fn direct_led() -> ! {
@@ -35,16 +44,22 @@ pub fn direct_led() -> ! {
         //write 0
         //core::ptr::write_volatile(porte.offset(0x06), 1 << 2);
         loop {
-            //toggle state
-            porte.offset(0x07).write_volatile(1 << 2);
+
+            for x in 0..100 {
+                //toggle state
+                let v = x * 5;
+                let max = 500;
+
+                porte.offset(0x06).write_volatile(1 << 2);
+                for _ in 0..(v) {
+                    core::arch::asm!("nop");
+                }
+
+                porte.offset(0x05).write_volatile(1 << 2);
+                for _ in 0..(max - v) {
+                    core::arch::asm!("nop");
+                }
+            }
         }
     }
 }
-
-#[panic_handler]
-pub fn pan(_: &core::panic::PanicInfo) -> ! {
-    loop {}
-}
-
-#[lang = "eh_personality"]
-extern "C" fn eh_personality() {}
