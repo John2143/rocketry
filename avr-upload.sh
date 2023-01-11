@@ -3,6 +3,13 @@ PART="atmega4809"
 PROGRAMMER="jtag2updi"
 BAUD=115200
 
+if [[ "Z$PORT" == "Z" ]]; then
+    echo "Please set \$PORT to your microcontroller location (ex. /dev/ttyACM1)"
+    echo "fish: set -x PORT (ls /dev/ttyACM* | tail -n 1)"
+    echo "bash: export PORT=\$(ls /dev/ttyACM* | tail -n 1)"
+    exit 1
+fi
+
 
 FUSE0="0x00" # Watchdog timer 0x00
 FUSE1="0x00" # BOD 0x00

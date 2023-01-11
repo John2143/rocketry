@@ -2,26 +2,21 @@
 #![no_std]
 #![no_main]
 
-//use ruduino::cores::atmega328p as avr_core;
-//use ruduino::Register;
-
-//use avr_core::{DDRB, PORTB};
+//use ruduino::cores::current::port;
+//use ruduino::Pin;
 
 #[no_mangle]
-pub extern "C" fn main() {
-    // Set all PORTB pins up as outputs
-    //DDRB::set_mask_raw(0xFFu8);
+pub fn main() {
+    //port::B5::set_output();
 
     //loop {
-    //// Set all pins on PORTB to high.
-    //PORTB::set_mask_raw(0xFF);
+    //port::B5::set_high();
 
-    //small_delay();
+    //ruduino::delay::delay_ms(1000);
 
-    //// Set all pins on PORTB to low.
-    //PORTB::unset_mask_raw(0xFF);
+    //port::B5::set_low();
 
-    //small_delay();
+    //ruduino::delay::delay_ms(1000);
     //}
 }
 
