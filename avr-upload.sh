@@ -1,7 +1,7 @@
 #!/bin/bash
 PART="atmega4809"
 PROGRAMMER="jtag2updi"
-BAUD=115200
+BAUD=57600
 
 if [[ "Z$PORT" == "Z" ]]; then
     echo "Please set \$PORT to your microcontroller location (ex. /dev/ttyACM1)"
@@ -40,11 +40,10 @@ avr-objcopy -O ihex -R .eeprom $1 $1.hex
 
 # put the microcontroller into a listening state
 stty -F "${PORT}" 1200
-sleep .1
 
 avrdude -v -p$PART -c$PROGRAMMER -P$PORT -b$BAUD \
     $FUSEFLAGS \
-    -D -e -Uflash:w:$1.hex:i
+    -D -e -Uflash:w:$1:e
     # skip for now # -Ufusea:w:$(FUSE0):m 
     #-Uflash:w:/tmp/arduino_build_62094/sketch_jan10a.ino.hex:i
 

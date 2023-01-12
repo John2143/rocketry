@@ -9,13 +9,13 @@ pub fn blink_led() -> ! {
 
     loop {
         for x in 0..255 {
-            for _ in 0..5 {
+            for _ in 0..50 {
                 duty_cycle((x / 3) as u8);
             }
         }
 
         for x in (0..255).rev() {
-            for _ in 0..2 {
+            for _ in 0..50 {
                 duty_cycle((x / 3) as u8);
             }
         }
