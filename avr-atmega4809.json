@@ -24,11 +24,8 @@
       "-mmcu=atmega4809",
       "-Wl,--as-needed",
       "-Wl,--verbose",
-      "-Wl,-Map=target/memory.map",
-      "-Wl,--script,avrxmega3-novectors.x",
       "-L","../atpack/gcc/dev/atmega4809/avrxmega3",
-      "-B","../atpack/gcc/dev/atmega4809/",
-      "-nostartfiles"
+      "-B","../atpack/gcc/dev/atmega4809/"
     ]
   },
   "target-c-int-width": "16",

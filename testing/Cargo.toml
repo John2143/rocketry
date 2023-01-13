@@ -11,12 +11,12 @@ test = false
 bench = false
 
 [dependencies]
-#atmega4809-hal = { path = "../atmega4809-hal" }
+atmega4809-hal = { path = "../atmega4809-hal" }
 #nau7802 = "0.1.0-alpha"
 #avr-oxide = { version = "*", features = ["20MHz", "arduino_nanoevery", "atmega4809", "bootable", "panicout_usart3", "tcb0", "rtc", "twi0"] }
-avr-oxide = { version = "0.4.0", features = [ "runtime_checks", "bootable", "panic_handler", "arduino_nanoevery", "20MHz", "panicout_usart3", "tcb0", "rtc", "twi0" ] }
+#avr-oxide = { version = "0.4.0", features = [ "runtime_checks", "bootable", "panic_handler", "arduino_nanoevery", "20MHz", "panicout_usart3", "tcb0", "rtc", "twi0" ] }
 
-#panic-halt = "0.2.0"
+panic-halt = "0.2.0"
 
 # Configure the build for minimal size - AVRs have very little program memory
 [profile.dev]
