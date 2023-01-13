@@ -27,8 +27,8 @@ static ALLOCATOR: AVRAlloc = AVRAlloc::new();
 
 #[no_mangle]
 pub fn main() -> ! {
-    //ClockSelect::OSC20M.set_clock();
-    ClockSelect::OSCULP32K.set_clock();
+    ClockSelect::OSC20M.set_clock();
+    //ClockSelect::OSCULP32K.set_clock();
     ClockPrescaler::None.set_clock_prescaler();
 
     let led = GPIO::PORTE(2);
@@ -46,6 +46,7 @@ pub fn main() -> ! {
 
     Nau7802::setup();
 
+    let mut first: Option<u32> = None;
     loop {
         led.output_high();
         loop {
@@ -57,17 +58,25 @@ pub fn main() -> ! {
         }
         led.output_low();
 
-        led2.output_high();
-        match Nau7802.read_unchecked_s() {
+        match Nau7802.read_unchecked_m() {
             Ok(v) => {
+                let s: u32 = (v[0] as u32) << 16 | (v[1] as u32) << 8 | v[2] as u32;
+                let first = match first {
+                    Some(f) => f,
+                    None => {
+                        first = Some(s);
+                        s
+                    }
+                };
+
+                //let s = (s).abs_diff(first);
+                let s = (s / 1000) % 100;
                 for _ in 0..1000 {
-                    let s: u32 = (v[0] as u32) << 16 | (v[1] as u32) << 8 | v[2] as u32;
-                    testing::duty_cycle((s % 100) as u8);
+                    testing::duty_cycle(s as u8);
                 }
             }
             Err(_) => {}
         };
-        led2.output_low();
         sleep(400);
     }
 

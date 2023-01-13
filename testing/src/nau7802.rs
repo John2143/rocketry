@@ -252,11 +252,15 @@ impl Nau7802 {
             Err(_) => led2.output_high(),
         }
 
-        match Self.set_sample_rate(SamplesPerSecond::SPS20) {
+        match Self.set_sample_rate(SamplesPerSecond::SPS80) {
             Ok(_) => {}
             Err(_) => led2.output_high(),
         }
-        match Self.set_gain(Gain::G64) {
+        match Self.set_gain(Gain::G128) {
+            Ok(_) => {}
+            Err(_) => led2.output_high(),
+        }
+        match Self.set_ldo(Ldo::L3v6) {
             Ok(_) => {}
             Err(_) => led2.output_high(),
         }
@@ -315,8 +319,7 @@ impl Nau7802 {
     }
 
     pub fn read_unchecked_m(&mut self) -> Result<[u8; 3], I2CError> {
-        let v = self.read::<4>(Register::AdcoB2 as u8)?;
-        Ok([v[0], v[1], v[2]])
+        self.read::<3>(Register::AdcoB2 as u8)
     }
 
     pub fn data_available(&mut self) -> Result<bool, I2CError> {
