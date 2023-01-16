@@ -194,6 +194,8 @@ impl Nau7802 {
         self.set_bit(Register::PuCtrl, PuCtrlBits::PUD)?;
         self.set_bit(Register::PuCtrl, PuCtrlBits::PUA)?;
 
+        sleep(0x200);
+
         let check_powered_up = || self.get_bit(Register::PuCtrl, PuCtrlBits::PUR);
 
         let powered_up = iter::repeat_with(check_powered_up)
@@ -240,7 +242,7 @@ impl Nau7802 {
             Err(_) => led2.output_high(),
         }
 
-        sleep(100);
+        sleep(0x100);
 
         match Self.clear_bit(Register::PuCtrl, PuCtrlBits::RR) {
             Ok(_) => {}
@@ -252,7 +254,7 @@ impl Nau7802 {
             Err(_) => led2.output_high(),
         }
 
-        match Self.set_sample_rate(SamplesPerSecond::SPS80) {
+        match Self.set_sample_rate(SamplesPerSecond::SPS20) {
             Ok(_) => {}
             Err(_) => led2.output_high(),
         }
@@ -260,7 +262,7 @@ impl Nau7802 {
             Ok(_) => {}
             Err(_) => led2.output_high(),
         }
-        match Self.set_ldo(Ldo::L3v6) {
+        match Self.set_ldo(Ldo::L3v0) {
             Ok(_) => {}
             Err(_) => led2.output_high(),
         }
@@ -273,9 +275,16 @@ impl Nau7802 {
         // Enable 330pF decoupling cap on chan 2. From 9.14 application circuit note
         Self.set_bit(Register::PgaPwr, PgaPwrRegisterBits::CapEn);
 
+        for _ in 0..10 {
+            Self.get();
+            sleep(1000);
+        }
+        sleep(10000);
+
         Self.begin_afe_calibration();
 
         while let Ok(AfeCalibrationStatus::InProgress) = Self.poll_afe_calibration_status() {}
+        sleep(10000);
     }
 
     pub fn begin_afe_calibration(&mut self) -> Result<(), I2CError> {
@@ -324,5 +333,20 @@ impl Nau7802 {
 
     pub fn data_available(&mut self) -> Result<bool, I2CError> {
         self.get_bit(Register::PuCtrl, PuCtrlBits::CR)
+    }
+
+    pub fn get(&mut self) -> Result<u32, I2CError> {
+        loop {
+            if self.data_available()? {
+                break;
+            }
+            sleep(10);
+        }
+
+        let v = self.read_unchecked_m()?;
+
+        let s: u32 = (v[0] as u32) << 16 | (v[1] as u32) << 8 | v[2] as u32;
+
+        Ok(s)
     }
 }
