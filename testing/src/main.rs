@@ -8,22 +8,25 @@ extern crate alloc;
 
 pub mod avr_alloc;
 pub mod ints;
-pub mod nau7802;
 pub mod testing;
 
-use alloc::boxed::Box;
 use atmega4809_hal::clock::{ClockPrescaler, ClockSelect};
 use atmega4809_hal::gpio::{GPIO, ISC};
 use atmega4809_hal::i2c::I2C;
-use atmega4809_hal::i2c::RW::DirWrite;
+use atmega4809_hal::Delay;
 use avr_alloc::AVRAlloc;
 
-use nau7802::Nau7802;
-use panic_halt as _;
 use testing::sleep;
 
 #[global_allocator]
 static ALLOCATOR: AVRAlloc = AVRAlloc::new();
+
+#[panic_handler]
+fn panic(_info: &core::panic::PanicInfo) -> ! {
+    loop {
+        GPIO::PORTE(2).output_high();
+    }
+}
 
 #[no_mangle]
 pub fn main() -> ! {
@@ -44,40 +47,29 @@ pub fn main() -> ! {
     led2.output_low();
     I2C::setup();
 
-    Nau7802::setup();
+    let mut v = nau7802::Nau7802::new_with_settings(
+        I2C,
+        nau7802::Ldo::L3v3,
+        nau7802::Gain::G64,
+        nau7802::SamplesPerSecond::SPS20,
+        &mut Delay,
+    )
+    .unwrap();
 
-    let mut first: Option<u32> = None;
     loop {
-        led.output_high();
-        loop {
-            match Nau7802.data_available() {
-                Ok(true) => break,
-                Ok(false) => sleep(20),
+        let s = loop {
+            match v.read() {
+                Ok(v) => break v,
                 Err(_) => {}
-            }
-        }
-        led.output_low();
-
-        match Nau7802.read_unchecked_m() {
-            Ok(v) => {
-                let s: u32 = (v[0] as u32) << 16 | (v[1] as u32) << 8 | v[2] as u32;
-                let first = match first {
-                    Some(f) => f,
-                    None => {
-                        first = Some(s);
-                        s
-                    }
-                };
-
-                //let s = (s).abs_diff(first);
-                let s = (s / 1000) % 100;
-                for _ in 0..1000 {
-                    testing::duty_cycle(s as u8);
-                }
-            }
-            Err(_) => {}
+            };
         };
-        sleep(400);
+
+        I2C::write(0x04, &[(s >> 8) as u8]).unwrap();
+        //let s = (s).abs_diff(first);
+        let s = (s / 1000) % 100;
+        for _ in 0..30 {
+            testing::duty_cycle(s as u8);
+        }
     }
 
     //testing::blink_led();

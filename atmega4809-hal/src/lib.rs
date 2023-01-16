@@ -1,3 +1,4 @@
+#![feature(asm_experimental_arch)]
 #![no_std]
 /*
 0x0000 VPORTA Virtual Port A X X X X
@@ -51,3 +52,13 @@ pub use embedded_hal::PwmPin;
 pub mod clock;
 pub mod gpio;
 pub mod i2c;
+
+pub struct Delay;
+
+impl embedded_hal::blocking::delay::DelayMs<u16> for Delay {
+    fn delay_ms(&mut self, ms: u16) {
+        for _ in 0..(ms * 1000) {
+            unsafe { core::arch::asm!("nop") };
+        }
+    }
+}

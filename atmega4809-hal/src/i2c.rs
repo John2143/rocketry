@@ -61,6 +61,7 @@ pub enum RW {
 
 pub struct BusStatus(u8);
 
+#[derive(Debug)]
 pub enum I2CError {
     NACK,
     PartialTransmit(u8),
@@ -120,16 +121,16 @@ impl I2C {
 
         let status = Self::wait_wif();
 
-        if status.rxack() == CK::ACK && status.clkhld() {
-            //Case M1: Address Packet Transmit Complete, Dir bit set 0
-            //
-            //prepare to transmit data
-        } else if status.rxack() == CK::NACK {
+        if status.rxack() == CK::NACK {
             //Case M3: Address Packet " ", Not ACK by client
             return Err(I2CError::NACK);
         } else if status.arblost() {
             //Case M4: Error
             return Err(I2CError::ArbLost);
+        } else if status.rxack() == CK::ACK && status.clkhld() {
+            //Case M1: Address Packet Transmit Complete, Dir bit set 0
+            //
+            //prepare to transmit data
         } else {
             //unreachable!()
             return Err(I2CError::ArbLost);
@@ -212,19 +213,21 @@ impl I2C {
     }
 
     pub fn read<const N: usize>(address: u8) -> Result<[u8; N], I2CError> {
+        let mut buf = [0u8; N];
+        Self::read_to_buf(address, &mut buf)?;
+        Ok(buf)
+    }
+
+    pub fn read_to_buf(address: u8, buf: &mut [u8]) -> Result<(), I2CError> {
         let pre_enable = unsafe { I2C::TWI0.offset(0x03).read_volatile() };
         //turn on chip
         unsafe { I2C::TWI0.offset(0x03).write_volatile(pre_enable | 1) };
-
-        let led = crate::gpio::GPIO::PORTE(2);
-        let led2 = crate::gpio::GPIO::PORTD(3);
 
         Self::wait_for_bus();
 
         unsafe { I2C::TWI0.offset(0x07).write_volatile(address << 1 | 1) };
 
-        let mut buf = [0u8; N];
-        for b in &mut buf {
+        for b in buf {
             *b = Self::read_byte()?;
         }
 
@@ -235,7 +238,8 @@ impl I2C {
         }
         //turn off chip
         unsafe { I2C::TWI0.offset(0x03).write_volatile(pre_enable | 0) };
-        Ok(buf)
+
+        Ok(())
     }
 
     pub fn read_byte() -> Result<u8, I2CError> {
@@ -309,12 +313,19 @@ impl BusStatus {
         self.0 & 0b0000_1000 > 0
     }
 }
-pub struct I2CChannel(u8);
 
-impl ufmt::uWrite for I2CChannel {
-    type Error = ();
+impl embedded_hal::blocking::i2c::Read for I2C {
+    type Error = I2CError;
 
-    fn write_str(&mut self, s: &str) -> Result<(), Self::Error> {
-        todo!()
+    fn read(&mut self, address: u8, buffer: &mut [u8]) -> Result<(), Self::Error> {
+        Self::read_to_buf(address, buffer)
+    }
+}
+
+impl embedded_hal::blocking::i2c::Write for I2C {
+    type Error = I2CError;
+
+    fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), Self::Error> {
+        Self::write(address, bytes)
     }
 }
