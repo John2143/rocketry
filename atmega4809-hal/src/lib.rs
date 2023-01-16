@@ -47,11 +47,10 @@
 0x1300 USERROW User Row
 */
 
-pub use embedded_hal::PwmPin;
-
 pub mod clock;
 pub mod gpio;
 pub mod i2c;
+pub mod pwm;
 
 pub struct Delay;
 

@@ -29,13 +29,14 @@ pub fn sleep(cycles: u16) {
 }
 
 pub fn duty_cycle(brightness: u8) {
+    let brightness = brightness / 2;
     let led = GPIO::PORTD(3);
     if brightness > 0 {
         led.output_high();
     }
     sleep(brightness.into());
-    if brightness < 100 {
+    if brightness < 49 {
         led.output_low();
     }
-    sleep((100 - brightness).into());
+    sleep((50 - brightness).into());
 }
