@@ -1,4 +1,5 @@
 #![feature(asm_experimental_arch)]
+#![feature(never_type)]
 #![no_std]
 /*
 0x0000 VPORTA Virtual Port A X X X X
@@ -51,8 +52,18 @@ pub mod clock;
 pub mod gpio;
 pub mod i2c;
 pub mod pwm;
+pub mod spi;
+pub mod usart;
 
 pub struct Delay;
+
+pub fn set16(p: *mut u8, v: u16) {
+    // little endian?
+    unsafe {
+        p.offset(0).write_volatile((v & 0xFF) as u8);
+        p.offset(1).write_volatile((v >> 8) as u8);
+    }
+}
 
 impl embedded_hal::blocking::delay::DelayMs<u16> for Delay {
     fn delay_ms(&mut self, ms: u16) {

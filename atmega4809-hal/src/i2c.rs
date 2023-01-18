@@ -1,3 +1,5 @@
+use embedded_hal::blocking::i2c::{self, Read, Write};
+
 pub struct I2C;
 /*
  *
@@ -314,7 +316,7 @@ impl BusStatus {
     }
 }
 
-impl embedded_hal::blocking::i2c::Read for I2C {
+impl i2c::Read for I2C {
     type Error = I2CError;
 
     fn read(&mut self, address: u8, buffer: &mut [u8]) -> Result<(), Self::Error> {
@@ -322,10 +324,25 @@ impl embedded_hal::blocking::i2c::Read for I2C {
     }
 }
 
-impl embedded_hal::blocking::i2c::Write for I2C {
+impl i2c::Write for I2C {
     type Error = I2CError;
 
     fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), Self::Error> {
         Self::write(address, bytes)
+    }
+}
+
+impl i2c::WriteRead for I2C {
+    type Error = I2CError;
+
+    fn write_read(
+        &mut self,
+        address: u8,
+        bytes: &[u8],
+        buffer: &mut [u8],
+    ) -> Result<(), Self::Error> {
+        self.write(address, bytes)?;
+        self.read(address, buffer)?;
+        Ok(())
     }
 }

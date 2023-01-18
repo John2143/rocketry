@@ -52,5 +52,3 @@ pub fn __vector_15() {
 pub fn __vector_39() {
     todo!()
 }
-
-pub static __heap_end: u16 = 0x00FF;

@@ -1,3 +1,4 @@
+use crate::set16;
 pub struct PWM;
 //https://2143.me/f/FfId.png
 /*
@@ -17,12 +18,12 @@ pub struct PWM;
 15:8 CCMP[15:8]
 */
 
-const PORTMUX: *mut u8 = 0x05E0 as *mut _;
-const TCA0: *mut u8 = 0x0A00 as *mut _;
-const TCB0: *mut u8 = 0x0A80 as *mut _;
-const TCB1: *mut u8 = 0x0A90 as *mut _;
-const TCB2: *mut u8 = 0x0AA0 as *mut _;
-const TCB3: *mut u8 = 0x0AB0 as *mut _;
+pub const PORTMUX: *mut u8 = 0x05E0 as *mut _;
+pub const TCA0: *mut u8 = 0x0A00 as *mut _;
+pub const TCB0: *mut u8 = 0x0A80 as *mut _;
+pub const TCB1: *mut u8 = 0x0A90 as *mut _;
+pub const TCB2: *mut u8 = 0x0AA0 as *mut _;
+pub const TCB3: *mut u8 = 0x0AB0 as *mut _;
 
 #[repr(u8)]
 pub enum PWMPort {
@@ -72,31 +73,23 @@ impl PWM {
         unsafe { TCA0.write_volatile(0x0) };
     }
 
-    pub fn set16(p: *mut u8, v: u16) {
-        // little endian?
-        unsafe {
-            p.offset(0).write_volatile((v & 0xFF) as u8);
-            p.offset(1).write_volatile((v >> 8) as u8);
-        }
-    }
-
     pub fn set_cnt(v: u16) {
-        Self::set16(unsafe { TCA0.offset(0x20) }, v);
+        set16(unsafe { TCA0.offset(0x20) }, v);
     }
 
     pub fn set_per(v: u16) {
-        Self::set16(unsafe { TCA0.offset(0x26) }, v);
+        set16(unsafe { TCA0.offset(0x26) }, v);
     }
 
     pub fn set_cmp0(v: u16) {
-        Self::set16(unsafe { TCA0.offset(0x28) }, v);
+        set16(unsafe { TCA0.offset(0x28) }, v);
     }
 
     pub fn set_cmp1(v: u16) {
-        Self::set16(unsafe { TCA0.offset(0x2a) }, v);
+        set16(unsafe { TCA0.offset(0x2a) }, v);
     }
 
     pub fn set_cmp2(v: u16) {
-        Self::set16(unsafe { TCA0.offset(0x2c) }, v);
+        set16(unsafe { TCA0.offset(0x2c) }, v);
     }
 }

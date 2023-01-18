@@ -17,6 +17,7 @@ use atmega4809_hal::pwm::PWM;
 use atmega4809_hal::Delay;
 use avr_alloc::AVRAlloc;
 
+use icm20948::ICMI2C;
 use testing::sleep;
 
 #[global_allocator]
@@ -33,8 +34,8 @@ pub fn test_nau() {
     let mut v = nau7802::Nau7802::new_with_settings(
         I2C,
         nau7802::Ldo::L3v3,
-        nau7802::Gain::G64,
-        nau7802::SamplesPerSecond::SPS20,
+        nau7802::Gain::G128,
+        nau7802::SamplesPerSecond::SPS80,
         &mut Delay,
     )
     .unwrap();
@@ -48,6 +49,34 @@ pub fn test_nau() {
         };
 
         I2C::write(0x04, &[(s >> 8) as u8]).unwrap();
+        sleep(0xA00);
+    }
+}
+
+fn setup_pwm() {
+    GPIO::PORTB(1).output_enable();
+    GPIO::PORTB(1).pin_ctrl_isc(&ISC::IntDisable);
+    PWM::change_port_tca(atmega4809_hal::pwm::PWMPort::PORTB);
+    PWM::set_per(0xAF00); //60hz
+    PWM::enable(atmega4809_hal::pwm::WaveformGenerationMode::SINGLESLOPE);
+    PWM::set_cmp1(0x1500);
+}
+
+fn test_pwm() {
+    setup_pwm();
+    loop {
+        for x in (0x1000..0x1400).step_by(0x10) {
+            PWM::set_cmp1(x);
+            sleep(0xFFFF);
+        }
+    }
+}
+
+fn test_icm() {
+    let icm: ICMI2C<I2C, atmega4809_hal::i2c::I2CError, 0x77> = ICMI2C::new(&mut I2C).unwrap();
+    loop {
+        let v = icm.get_values_accel_gyro(&mut I2C).unwrap();
+        PWM::set_cmp1((v.0 + v.1 + v.2 + v.3 + v.4 + v.5) as u16);
     }
 }
 
@@ -55,6 +84,11 @@ include!(concat!(env!("OUT_DIR"), "/hello.rs"));
 
 #[no_mangle]
 pub fn main() -> ! {
+    real_main();
+    loop {}
+}
+
+pub fn real_main() {
     ClockSelect::OSC20M.set_clock();
     //ClockSelect::OSCULP32K.set_clock();
     ClockPrescaler::None.set_clock_prescaler();
@@ -71,21 +105,7 @@ pub fn main() -> ! {
     led.output_low();
     led2.output_low();
     I2C::setup();
+    setup_pwm();
 
-    GPIO::PORTB(1).output_enable();
-    GPIO::PORTB(1).pin_ctrl_isc(&ISC::IntDisable);
-    PWM::change_port_tca(atmega4809_hal::pwm::PWMPort::PORTB);
-    PWM::set_per(0x5000);
-    PWM::enable(atmega4809_hal::pwm::WaveformGenerationMode::SINGLESLOPE);
-    PWM::set_cmp1(0x1500);
-    loop {
-        PWM::set_cmp1(0x1000);
-        sleep(0xFFFF);
-        sleep(0xFFFF);
-        sleep(0xFFFF);
-        PWM::set_cmp1(0x1600);
-        sleep(0xFFFF);
-        sleep(0xFFFF);
-        sleep(0xFFFF);
-    }
+    //test_nau();
 }

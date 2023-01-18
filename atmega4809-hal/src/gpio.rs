@@ -118,3 +118,19 @@ impl GPIO {
         }
     }
 }
+
+impl embedded_hal::digital::v2::OutputPin for GPIO {
+    type Error = !;
+
+    ///Make sure to enable the output mode for this pin
+    fn set_low(&mut self) -> Result<(), Self::Error> {
+        self.output_low();
+        Ok(())
+    }
+
+    ///Make sure to enable the output mode for this pin
+    fn set_high(&mut self) -> Result<(), Self::Error> {
+        self.output_high();
+        Ok(())
+    }
+}
