@@ -49,8 +49,8 @@ pub fn test_nau() {
             };
         };
 
-        I2C::write(0x04, &[(s >> 8) as u8]).unwrap();
-        sleep(0xA00);
+        ufmt::uwrite!(USART, "{}\r\n", s).unwrap();
+        //sleep(0xff00);
     }
 }
 
@@ -61,6 +61,16 @@ fn setup_pwm() {
     PWM::set_per(0xAF00); //60hz
     PWM::enable(atmega4809_hal::pwm::WaveformGenerationMode::SINGLESLOPE);
     PWM::set_cmp1(32);
+}
+
+fn setup_usart() {
+    USART::setup(
+        ((17 << 6) | 0b0001_1000) / 6, //9600
+        atmega4809_hal::usart::CommunicationMode::Asynchronous,
+        atmega4809_hal::usart::ParityMode::Disabled,
+        atmega4809_hal::usart::StopBitMode::One,
+        atmega4809_hal::usart::CharacterSize::B8,
+    );
 }
 
 fn test_pwm() {
@@ -84,24 +94,6 @@ fn test_icm() {
 pub fn t() {
     GPIO::PORTA(1).output_enable();
     GPIO::PORTA(1).output_high();
-}
-
-fn test_usart() {
-    t();
-    for x in (15..20).step_by(1) {
-        USART::setup(
-            (17 << 6) | 0b0001_1000,
-            atmega4809_hal::usart::CommunicationMode::Asynchronous,
-            atmega4809_hal::usart::ParityMode::Disabled,
-            atmega4809_hal::usart::StopBitMode::One,
-            atmega4809_hal::usart::CharacterSize::B8,
-        );
-
-        USART::transact(b"oh wow it really works\n'", &mut []).unwrap();
-        //for _ in 0..0xf00 {
-        sleep(0xffff);
-        //}
-    }
 }
 
 include!(concat!(env!("OUT_DIR"), "/hello.rs"));
@@ -130,8 +122,7 @@ pub fn real_main() {
     led2.output_low();
     I2C::setup();
     setup_pwm();
+    setup_usart();
 
-    loop {
-        test_usart();
-    }
+    test_nau()
 }

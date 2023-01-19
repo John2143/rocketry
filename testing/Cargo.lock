@@ -267,6 +267,7 @@ dependencies = [
  "bme280",
  "icm20948",
  "nau7802",
+ "ufmt 0.2.0",
 ]
 
 [[package]]

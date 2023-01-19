@@ -88,9 +88,9 @@ impl USART {
         wsize: CharacterSize,
     ) {
         // 1. Set the baud rate (USARTn.BAUD).
-        set16(unsafe { USART1.offset(0x08) }, baud);
+        set16(unsafe { USART3.offset(0x08) }, baud);
         //let baud = 0b00010001 | 0b00011010 << 8;
-        //set16(unsafe { USART1.offset(0x08) }, baud);
+        //set16(unsafe { USART3.offset(0x08) }, baud);
 
         // 2. Set the frame format and mode of operation (USARTn.CTRLC).
         let ctrl_c = {
@@ -99,26 +99,26 @@ impl USART {
             (s as u8) << 3 |
             wsize as u8
         };
-        unsafe { USART1.offset(0x07).write_volatile(ctrl_c) };
+        unsafe { USART3.offset(0x07).write_volatile(ctrl_c) };
 
         // 3. Configure the TXD pin as an output.
         // see 15.3.3 PORTMUX Control for USART
         //unsafe { PORTMUX.offset(0x02).write(0b0100_0000) };
-        unsafe { PORTMUX.offset(0x02).write(0b0000_0100) };
-        crate::gpio::GPIO::PORTC(4).output_enable();
-        crate::gpio::GPIO::PORTC(4).pin_ctrl_pullup(true);
-        crate::gpio::GPIO::PORTC(4).pin_ctrl_isc(&crate::gpio::ISC::InputDisable);
+        unsafe { PORTMUX.offset(0x02).write(0b0100_0000) };
+        crate::gpio::GPIO::PORTB(4).output_enable();
+        crate::gpio::GPIO::PORTB(4).pin_ctrl_pullup(true);
+        crate::gpio::GPIO::PORTB(4).pin_ctrl_isc(&crate::gpio::ISC::InputDisable);
         //crate::gpio::GPIO::PORTC(4).output_high();
 
         // (3.5, enable ints)
-        //unsafe { USART1.offset(0x05).write_volatile(0b1010_0000) };
+        //unsafe { USART3.offset(0x05).write_volatile(0b1010_0000) };
 
         for _ in 0..0xff {
             unsafe { core::arch::asm!("nop") };
         }
         // 4. Enable the transmitter and the receiver (USARTn.CTRLB)
-        //unsafe { USART1.offset(0x06).write_volatile(0b1100_0000) };
-        unsafe { USART1.offset(0x06).write_volatile(0b1100_0000) };
+        //unsafe { USART3.offset(0x06).write_volatile(0b1100_0000) };
+        unsafe { USART3.offset(0x06).write_volatile(0b1100_0000) };
 
         //9600
         //8 0b00010001
@@ -160,20 +160,21 @@ impl USART {
     }
 
     pub fn transact(mut write: &[u8], mut read: &mut [u8]) -> Result<(), USARTError> {
-        match write.split_first() {
-            Some((to_write, rest)) => {
-                unsafe { USART1.offset(0x02).write_volatile(*to_write) };
-                write = rest;
-            }
-            None => {}
-        }
+        //match write.split_first() {
+        //Some((to_write, rest)) => {
+        //unsafe { USART3.offset(0x02).write_volatile(*to_write) };
+        //write = rest;
+        //}
+        //None => {}
+        //}
+        GPIO::PORTA(1).output_high();
         loop {
             let status = Self::get_bus_status();
             if !write.is_empty() && status.dreif() {
                 //crate::pwm::PWM::set_cmp1(0xAF00 / (write.len() as u16));
                 match write.split_first() {
                     Some((to_write, rest)) => {
-                        unsafe { USART1.offset(0x02).write_volatile(*to_write) };
+                        unsafe { USART3.offset(0x02).write_volatile(*to_write) };
                         write = rest;
                     }
                     None => {}
@@ -183,7 +184,7 @@ impl USART {
                 //we can read a new byte
                 read = match read.split_first_mut() {
                     Some((first, rest)) => {
-                        *first = unsafe { USART1.offset(0x00).read_volatile() };
+                        *first = unsafe { USART3.offset(0x00).read_volatile() };
                         rest
                     }
                     None => {
@@ -192,14 +193,7 @@ impl USART {
                     }
                 }
             }
-            if write.is_empty() && read.is_empty() {
-                break;
-            }
-        }
-        GPIO::PORTA(1).output_high();
-        loop {
-            let status = Self::get_bus_status();
-            if status.txcif() {
+            if write.is_empty() && read.is_empty() && status.txcif() {
                 break;
             }
         }
@@ -208,11 +202,11 @@ impl USART {
     }
 
     pub fn stop() {
-        //unsafe { USART1.offset(0x06).write_volatile(0b0000_0000) };
+        //unsafe { USART3.offset(0x06).write_volatile(0b0000_0000) };
     }
 
     pub fn get_bus_status() -> BusStatus {
-        BusStatus(unsafe { USART1.offset(0x04).read_volatile() })
+        BusStatus(unsafe { USART3.offset(0x04).read_volatile() })
     }
 }
 
@@ -245,5 +239,13 @@ impl BusStatus {
 
     pub fn wfb(&self) -> bool {
         self.0 & 0b1000_0001 > 0
+    }
+}
+
+impl ufmt::uWrite for USART {
+    type Error = USARTError;
+
+    fn write_str(&mut self, s: &str) -> Result<(), Self::Error> {
+        Self::transact(s.as_bytes(), &mut [])
     }
 }
