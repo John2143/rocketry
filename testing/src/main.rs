@@ -14,6 +14,7 @@ use atmega4809_hal::clock::{ClockPrescaler, ClockSelect};
 use atmega4809_hal::gpio::{GPIO, ISC};
 use atmega4809_hal::i2c::I2C;
 use atmega4809_hal::pwm::PWM;
+use atmega4809_hal::usart::USART;
 use atmega4809_hal::Delay;
 use avr_alloc::AVRAlloc;
 
@@ -59,7 +60,7 @@ fn setup_pwm() {
     PWM::change_port_tca(atmega4809_hal::pwm::PWMPort::PORTB);
     PWM::set_per(0xAF00); //60hz
     PWM::enable(atmega4809_hal::pwm::WaveformGenerationMode::SINGLESLOPE);
-    PWM::set_cmp1(0x1500);
+    PWM::set_cmp1(32);
 }
 
 fn test_pwm() {
@@ -77,6 +78,29 @@ fn test_icm() {
     loop {
         let v = icm.get_values_accel_gyro(&mut I2C).unwrap();
         PWM::set_cmp1((v.0 + v.1 + v.2 + v.3 + v.4 + v.5) as u16);
+    }
+}
+
+pub fn t() {
+    GPIO::PORTA(1).output_enable();
+    GPIO::PORTA(1).output_high();
+}
+
+fn test_usart() {
+    t();
+    for x in (15..20).step_by(1) {
+        USART::setup(
+            (17 << 6) | 0b0001_1000,
+            atmega4809_hal::usart::CommunicationMode::Asynchronous,
+            atmega4809_hal::usart::ParityMode::Disabled,
+            atmega4809_hal::usart::StopBitMode::One,
+            atmega4809_hal::usart::CharacterSize::B8,
+        );
+
+        USART::transact(b"oh wow it really works\n'", &mut []).unwrap();
+        //for _ in 0..0xf00 {
+        sleep(0xffff);
+        //}
     }
 }
 
@@ -107,5 +131,7 @@ pub fn real_main() {
     I2C::setup();
     setup_pwm();
 
-    //test_nau();
+    loop {
+        test_usart();
+    }
 }
