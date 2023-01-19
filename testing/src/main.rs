@@ -10,6 +10,8 @@ pub mod avr_alloc;
 pub mod ints;
 pub mod testing;
 
+use core::convert::TryInto;
+
 use atmega4809_hal::clock::{ClockPrescaler, ClockSelect};
 use atmega4809_hal::gpio::{GPIO, ISC};
 use atmega4809_hal::i2c::I2C;
@@ -50,6 +52,14 @@ pub fn test_nau() {
         };
 
         ufmt::uwrite!(USART, "{}\r\n", s).unwrap();
+        // 0 - 200_000 -> 0x1000 - 0x1800
+        let sanatized = match s + 100_000 {
+            i32::MIN..=0 => 0,
+            v @ 1..=200_000 => v,
+            200_001..=i32::MAX => 200_000,
+        };
+
+        PWM::set_cmp1(((sanatized * 0x800) / 200_000 + 0x1000).try_into().unwrap());
         //sleep(0xff00);
     }
 }
