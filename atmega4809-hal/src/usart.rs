@@ -1,6 +1,6 @@
 use crate::{gpio::GPIO, set16};
 
-pub struct USART;
+pub struct USART<const ADDR: u16, const ALT: bool>;
 
 /*
 0x00 RXDATAL 7:0 DATA[7:0]
@@ -14,7 +14,7 @@ pub struct USART;
 0x07 CTRLC 7:0 CMODE[1:0] UDORD UCPHA
 0x08 BAUDL 7:0 BAUD[7:0]
 0x09 BAUDH 7:0 BAUD[15:8]
-0x0A CTRLD 7:0 ABW[1:0]
+0x0A CTRLD 8:0 ABW[1:0]
 0x0B DBGCTRL 7:0 DBGRUN
 0x0C EVCTRL 7:0 IREI
 0x0D TXPLCTRL 7:0 TXPL[7:0]
@@ -22,10 +22,10 @@ pub struct USART;
 */
 
 pub const PORTMUX: *mut u8 = 0x05E0 as *mut _;
-pub const USART0: *mut u8 = 0x0800 as *mut _;
-pub const USART1: *mut u8 = 0x0820 as *mut _;
-pub const USART2: *mut u8 = 0x0840 as *mut _;
-pub const USART3: *mut u8 = 0x0860 as *mut _;
+pub const USART0: u16 = 0x0800;
+pub const USART1: u16 = 0x0820;
+pub const USART2: u16 = 0x0840;
+pub const USART3: u16 = 0x0860;
 
 pub enum CommunicationMode {
     ///Asynchronous USART
@@ -79,7 +79,22 @@ pub fn t() {
     GPIO::PORTA(1).output_high();
 }
 
-impl USART {
+impl<const UADDR: u16, const ALT: bool> USART<UADDR, ALT> {
+    fn addr() -> *mut u8 {
+        UADDR as *mut _
+    }
+
+    fn get_out_pin() -> GPIO {
+        let pin = if ALT { 4 } else { 0 };
+        match UADDR {
+            USART0 => GPIO::PORTA(pin),
+            USART1 => GPIO::PORTC(pin),
+            USART2 => GPIO::PORTF(pin),
+            USART3 => GPIO::PORTB(pin),
+            _ => unreachable!(),
+        }
+    }
+
     pub fn setup(
         baud: u16,
         m: CommunicationMode,
@@ -88,9 +103,9 @@ impl USART {
         wsize: CharacterSize,
     ) {
         // 1. Set the baud rate (USARTn.BAUD).
-        set16(unsafe { USART3.offset(0x08) }, baud);
+        set16(unsafe { Self::addr().offset(0x08) }, baud);
         //let baud = 0b00010001 | 0b00011010 << 8;
-        //set16(unsafe { USART3.offset(0x08) }, baud);
+        //set16(unsafe { Self::addr().offset(0x08) }, baud);
 
         // 2. Set the frame format and mode of operation (USARTn.CTRLC).
         let ctrl_c = {
@@ -99,26 +114,46 @@ impl USART {
             (s as u8) << 3 |
             wsize as u8
         };
-        unsafe { USART3.offset(0x07).write_volatile(ctrl_c) };
+        unsafe { Self::addr().offset(0x07).write_volatile(ctrl_c) };
 
         // 3. Configure the TXD pin as an output.
         // see 15.3.3 PORTMUX Control for USART
         //unsafe { PORTMUX.offset(0x02).write(0b0100_0000) };
-        unsafe { PORTMUX.offset(0x02).write(0b0100_0000) };
-        crate::gpio::GPIO::PORTB(4).output_enable();
-        crate::gpio::GPIO::PORTB(4).pin_ctrl_pullup(true);
-        crate::gpio::GPIO::PORTB(4).pin_ctrl_isc(&crate::gpio::ISC::InputDisable);
+        let usart_pmux = unsafe { PORTMUX.offset(0x02) };
+        let cur = unsafe { usart_pmux.read_volatile() };
+        let bit_target = match UADDR {
+            USART0 => 0b0000_0001,
+            USART1 => 0b0000_0100,
+            USART2 => 0b0001_0000,
+            USART3 => 0b0100_0000,
+            _ => unreachable!(),
+        };
+
+        unsafe {
+            if ALT {
+                usart_pmux.write_volatile(cur | bit_target)
+            } else {
+                usart_pmux.write_volatile(cur & !bit_target)
+            }
+        };
+
+        if ALT {}
+        unsafe { usart_pmux.write(0b0100_0000) };
+        let out_pin = Self::get_out_pin();
+        out_pin.output_enable();
+        out_pin.pin_ctrl_pullup(true);
+        out_pin.pin_ctrl_isc(&crate::gpio::ISC::InputDisable);
         //crate::gpio::GPIO::PORTC(4).output_high();
 
         // (3.5, enable ints)
-        //unsafe { USART3.offset(0x05).write_volatile(0b1010_0000) };
+        //unsafe { Self::addr().offset(0x05).write_volatile(0b1010_0000) };
 
         for _ in 0..0xff {
             unsafe { core::arch::asm!("nop") };
         }
         // 4. Enable the transmitter and the receiver (USARTn.CTRLB)
-        //unsafe { USART3.offset(0x06).write_volatile(0b1100_0000) };
-        unsafe { USART3.offset(0x06).write_volatile(0b1100_0000) };
+        //unsafe { Self::addr().offset(0x06).write_volatile(0b1100_0000) };
+        unsafe { Self::addr().offset(0x06).write_volatile(0b1100_0000) };
 
         //9600
         //8 0b00010001
@@ -162,7 +197,7 @@ impl USART {
     pub fn transact(mut write: &[u8], mut read: &mut [u8]) -> Result<(), USARTError> {
         //match write.split_first() {
         //Some((to_write, rest)) => {
-        //unsafe { USART3.offset(0x02).write_volatile(*to_write) };
+        //unsafe { Self::addr().offset(0x02).write_volatile(*to_write) };
         //write = rest;
         //}
         //None => {}
@@ -174,7 +209,7 @@ impl USART {
                 //crate::pwm::PWM::set_cmp1(0xAF00 / (write.len() as u16));
                 match write.split_first() {
                     Some((to_write, rest)) => {
-                        unsafe { USART3.offset(0x02).write_volatile(*to_write) };
+                        unsafe { Self::addr().offset(0x02).write_volatile(*to_write) };
                         write = rest;
                     }
                     None => {}
@@ -184,7 +219,7 @@ impl USART {
                 //we can read a new byte
                 read = match read.split_first_mut() {
                     Some((first, rest)) => {
-                        *first = unsafe { USART3.offset(0x00).read_volatile() };
+                        *first = unsafe { Self::addr().offset(0x00).read_volatile() };
                         rest
                     }
                     None => {
@@ -202,11 +237,11 @@ impl USART {
     }
 
     pub fn stop() {
-        //unsafe { USART3.offset(0x06).write_volatile(0b0000_0000) };
+        //unsafe { Self::addr().offset(0x06).write_volatile(0b0000_0000) };
     }
 
     pub fn get_bus_status() -> BusStatus {
-        BusStatus(unsafe { USART3.offset(0x04).read_volatile() })
+        BusStatus(unsafe { Self::addr().offset(0x04).read_volatile() })
     }
 }
 
@@ -242,7 +277,7 @@ impl BusStatus {
     }
 }
 
-impl ufmt::uWrite for USART {
+impl<const UADDR: u16, const ALT: bool> ufmt::uWrite for USART<UADDR, ALT> {
     type Error = USARTError;
 
     fn write_str(&mut self, s: &str) -> Result<(), Self::Error> {

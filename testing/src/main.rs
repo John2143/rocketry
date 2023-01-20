@@ -7,6 +7,7 @@
 extern crate alloc;
 
 pub mod avr_alloc;
+pub mod bme280;
 pub mod ints;
 pub mod testing;
 
@@ -16,7 +17,7 @@ use atmega4809_hal::clock::{ClockPrescaler, ClockSelect};
 use atmega4809_hal::gpio::{GPIO, ISC};
 use atmega4809_hal::i2c::I2C;
 use atmega4809_hal::pwm::PWM;
-use atmega4809_hal::usart::USART;
+use atmega4809_hal::usart::{USART, USART1, USART3};
 use atmega4809_hal::Delay;
 use avr_alloc::AVRAlloc;
 
@@ -32,6 +33,9 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
         GPIO::PORTE(2).output_high();
     }
 }
+
+type Stdout = USART<USART3, true>;
+const STDOUT: Stdout = USART;
 
 pub fn test_nau() {
     let mut v = nau7802::Nau7802::new_with_settings(
@@ -51,7 +55,7 @@ pub fn test_nau() {
             };
         };
 
-        ufmt::uwrite!(USART, "{}\r\n", s).unwrap();
+        ufmt::uwrite!(STDOUT, "{}\r\n", s).unwrap();
         // 0 - 200_000 -> 0x1000 - 0x1800
         let sanatized = match s + 100_000 {
             i32::MIN..=0 => 0,
@@ -60,8 +64,12 @@ pub fn test_nau() {
         };
 
         PWM::set_cmp1(((sanatized * 0x800) / 200_000 + 0x1000).try_into().unwrap());
-        //sleep(0xff00);
+        sleep(0xff00);
     }
+}
+
+pub fn test_bme() {
+    //let b = bme280::i2c::BME280::new(I2C, 0x77);
 }
 
 fn setup_pwm() {
@@ -70,11 +78,11 @@ fn setup_pwm() {
     PWM::change_port_tca(atmega4809_hal::pwm::PWMPort::PORTB);
     PWM::set_per(0xAF00); //60hz
     PWM::enable(atmega4809_hal::pwm::WaveformGenerationMode::SINGLESLOPE);
-    PWM::set_cmp1(32);
+    PWM::set_cmp1(0xAF00 / 4); //60hz
 }
 
 fn setup_usart() {
-    USART::setup(
+    Stdout::setup(
         ((17 << 6) | 0b0001_1000) / 6, //9600
         atmega4809_hal::usart::CommunicationMode::Asynchronous,
         atmega4809_hal::usart::ParityMode::Disabled,
@@ -94,19 +102,13 @@ fn test_pwm() {
 }
 
 fn test_icm() {
-    let icm: ICMI2C<I2C, atmega4809_hal::i2c::I2CError, 0x77> = ICMI2C::new(&mut I2C).unwrap();
+    ufmt::uwrite!(STDOUT, "Starting to measure {:x}\r\n", 0x69).unwrap();
+    let icm: ICMI2C<I2C, atmega4809_hal::i2c::I2CError, 0x69> = ICMI2C::new(&mut I2C).unwrap();
     loop {
         let v = icm.get_values_accel_gyro(&mut I2C).unwrap();
-        PWM::set_cmp1((v.0 + v.1 + v.2 + v.3 + v.4 + v.5) as u16);
+        ufmt::uwrite!(STDOUT, "{:?}\r\n", v).unwrap();
     }
 }
-
-pub fn t() {
-    GPIO::PORTA(1).output_enable();
-    GPIO::PORTA(1).output_high();
-}
-
-include!(concat!(env!("OUT_DIR"), "/hello.rs"));
 
 #[no_mangle]
 pub fn main() -> ! {
@@ -134,5 +136,5 @@ pub fn real_main() {
     setup_pwm();
     setup_usart();
 
-    test_nau()
+    test_icm();
 }

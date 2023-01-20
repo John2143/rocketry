@@ -18,7 +18,7 @@ pub enum SPIError {
 }
 
 pub const PORTMUX: *mut u8 = 0x05E0 as *mut _;
-pub const SPI0: *mut u8 = 12341234123421343213 as *mut _;
+pub const SPI0: *mut u8 = 0x08C0 as *mut _;
 
 pub enum Polarity {
     ///Leading edge: Rising, sample
