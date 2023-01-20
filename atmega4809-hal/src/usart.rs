@@ -137,11 +137,9 @@ impl<const UADDR: u16, const ALT: bool> USART<UADDR, ALT> {
             }
         };
 
-        if ALT {}
-        unsafe { usart_pmux.write(0b0100_0000) };
         let out_pin = Self::get_out_pin();
         out_pin.output_enable();
-        out_pin.pin_ctrl_pullup(true);
+        //out_pin.pin_ctrl_pullup(true);
         out_pin.pin_ctrl_isc(&crate::gpio::ISC::InputDisable);
         //crate::gpio::GPIO::PORTC(4).output_high();
 

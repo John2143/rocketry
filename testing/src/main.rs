@@ -37,6 +37,9 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
 type Stdout = USART<USART3, true>;
 const STDOUT: Stdout = USART;
 
+type Ble = USART<USART1, true>;
+const BLE: Ble = USART;
+
 pub fn test_nau() {
     let mut v = nau7802::Nau7802::new_with_settings(
         I2C,
@@ -83,7 +86,15 @@ fn setup_pwm() {
 
 fn setup_usart() {
     Stdout::setup(
-        ((17 << 6) | 0b0001_1000) / 6, //9600
+        ((17 << 6) | 0b0001_1000) / 6, //9600 / 6 = 57200
+        atmega4809_hal::usart::CommunicationMode::Asynchronous,
+        atmega4809_hal::usart::ParityMode::Disabled,
+        atmega4809_hal::usart::StopBitMode::One,
+        atmega4809_hal::usart::CharacterSize::B8,
+    );
+
+    Ble::setup(
+        ((17 << 6) | 0b0001_1000) / 4, //9600 / 4 = 38400
         atmega4809_hal::usart::CommunicationMode::Asynchronous,
         atmega4809_hal::usart::ParityMode::Disabled,
         atmega4809_hal::usart::StopBitMode::One,
@@ -108,6 +119,18 @@ fn test_icm() {
         let v = icm.get_values_accel_gyro(&mut I2C).unwrap();
         ufmt::uwrite!(STDOUT, "{:?}\r\n", v).unwrap();
     }
+}
+
+fn test_ble() {
+    let alts = unsafe { (0x5E2 as *mut u8).read_volatile() };
+    ufmt::uwrite!(STDOUT, "Starting BLE Test... {:x}\r\n", alts).unwrap();
+    for _ in 0..0xff {
+        unsafe { core::arch::asm!("nop") };
+    }
+    for _ in 0..0xff {
+        unsafe { core::arch::asm!("nop") };
+    }
+    ufmt::uwrite!(BLE, "AT+UART=38400,0,0\r\n").unwrap();
 }
 
 #[no_mangle]
@@ -136,5 +159,6 @@ pub fn real_main() {
     setup_pwm();
     setup_usart();
 
-    test_icm();
+    test_ble();
+    //test_icm();
 }
