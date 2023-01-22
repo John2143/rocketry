@@ -40,6 +40,7 @@ avr-objcopy -O ihex -R .eeprom $1 $1.hex
 
 # put the microcontroller into a listening state
 stty -F "${PORT}" 1200
+sleep .5
 
 avrdude -v -p$PART -c$PROGRAMMER -P$PORT -b$BAUD \
     $FUSEFLAGS \

@@ -133,7 +133,8 @@ impl<const UADDR: u16, const ALT: bool> USART<UADDR, ALT> {
             if ALT {
                 usart_pmux.write_volatile(cur | bit_target)
             } else {
-                usart_pmux.write_volatile(cur & !bit_target)
+                //turn 0x1 to 0x3 and clear the bits
+                usart_pmux.write_volatile(cur & !(bit_target | (bit_target << 1)))
             }
         };
 
@@ -193,14 +194,8 @@ impl<const UADDR: u16, const ALT: bool> USART<UADDR, ALT> {
     }
 
     pub fn transact(mut write: &[u8], mut read: &mut [u8]) -> Result<(), USARTError> {
-        //match write.split_first() {
-        //Some((to_write, rest)) => {
-        //unsafe { Self::addr().offset(0x02).write_volatile(*to_write) };
-        //write = rest;
-        //}
-        //None => {}
-        //}
         GPIO::PORTA(1).output_high();
+        let mut read_is_done = false;
         loop {
             let status = Self::get_bus_status();
             if !write.is_empty() && status.dreif() {
@@ -218,6 +213,10 @@ impl<const UADDR: u16, const ALT: bool> USART<UADDR, ALT> {
                 read = match read.split_first_mut() {
                     Some((first, rest)) => {
                         *first = unsafe { Self::addr().offset(0x00).read_volatile() };
+                        if *first == b'\n' {
+                            //GPIO::PORTA(0).output_high();
+                            read_is_done = true;
+                        }
                         rest
                     }
                     None => {
@@ -226,7 +225,7 @@ impl<const UADDR: u16, const ALT: bool> USART<UADDR, ALT> {
                     }
                 }
             }
-            if write.is_empty() && read.is_empty() && status.txcif() {
+            if write.is_empty() && status.txcif() && (read.is_empty() || read_is_done) {
                 break;
             }
         }
@@ -236,6 +235,10 @@ impl<const UADDR: u16, const ALT: bool> USART<UADDR, ALT> {
 
     pub fn stop() {
         //unsafe { Self::addr().offset(0x06).write_volatile(0b0000_0000) };
+    }
+
+    pub fn off() {
+        unsafe { Self::addr().offset(0x06).write_volatile(0b0000_0000) };
     }
 
     pub fn get_bus_status() -> BusStatus {

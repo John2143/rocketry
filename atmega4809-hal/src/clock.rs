@@ -60,3 +60,15 @@ impl ClockPrescaler {
         unsafe { (0x0061 as *mut u8).write_volatile(pdiv << 1 | pen) };
     }
 }
+
+pub enum Sleep {
+    Idle = 0x0,
+    Standby = 0x1,
+    PowerOff = 0x2,
+}
+
+impl Sleep {
+    pub fn set_sleep(self) {
+        unsafe { (0x0050 as *mut u8).write_volatile(1 | ((self as u8) << 1)) };
+    }
+}
