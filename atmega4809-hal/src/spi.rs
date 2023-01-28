@@ -1,3 +1,5 @@
+use ufmt::derive::uDebug;
+
 pub struct SPI;
 
 /*
@@ -11,7 +13,7 @@ Offset Name Bit Pos.
 0x04 DATA 7:0 DATA[7:0]
 
 */
-#[derive(Debug)]
+#[derive(Debug, uDebug)]
 pub enum SPIError {
     ReadOverflow,
     Other,
@@ -77,12 +79,8 @@ impl SPI {
     pub fn get_bus_status() -> BusStatus {
         BusStatus(unsafe { SPI0.offset(0x03).read_volatile() })
     }
-}
 
-impl embedded_hal::blocking::spi::Transfer<u8> for SPI {
-    type Error = SPIError;
-
-    fn transfer<'w>(&mut self, words: &'w mut [u8]) -> Result<&'w [u8], Self::Error> {
+    pub fn transfer<'w>(&mut self, words: &'w mut [u8]) -> Result<&'w [u8], SPIError> {
         let mut wptr = 0;
         let mut rptr = 0;
         loop {
@@ -97,7 +95,7 @@ impl embedded_hal::blocking::spi::Transfer<u8> for SPI {
             }
 
             if status.bufovf() {
-                return Err(SPIError::ReadOverflow);
+                //return Err(SPIError::ReadOverflow);
             }
 
             if status.ssif() {
@@ -107,12 +105,22 @@ impl embedded_hal::blocking::spi::Transfer<u8> for SPI {
             if status.txcif() && words.len() == wptr {
                 // && wptr == rptr ?? not sure if SPI always
                 // sends the same amount of data both dirs
+                //
+                // it probably does cause shared clock, huh
 
                 break;
             }
         }
 
         Ok(words)
+    }
+}
+
+impl embedded_hal::blocking::spi::Transfer<u8> for SPI {
+    type Error = SPIError;
+
+    fn transfer<'w>(&mut self, words: &'w mut [u8]) -> Result<&'w [u8], Self::Error> {
+        self.transfer(words)
     }
 }
 

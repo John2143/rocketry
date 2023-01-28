@@ -125,6 +125,7 @@ fn test_icm() {
     let icm: ICMI2C<I2C, atmega4809_hal::i2c::I2CError, 0x69> = ICMI2C::new(&mut I2C).unwrap();
     loop {
         let v = icm.get_values_accel_gyro(&mut I2C).unwrap();
+
         ufmt::uwrite!(STDOUT, "{:?}\r\n", v).unwrap();
     }
 }
@@ -138,6 +139,28 @@ fn test_ble() {
 
     ufmt::uwrite!(STDOUT, "Ok\r\n").unwrap();
     //ufmt::uwrite!(STDOUT, "Got back some data: '{}'\r\n", d).unwrap();
+}
+
+fn test_spi() {
+    use atmega4809_hal::spi;
+    use spi::SPI;
+    ufmt::uwrite!(STDOUT, "Starting SPI...\r\n").unwrap();
+    SPI::setup(false, false, spi::Polarity::P0);
+    ufmt::uwrite!(STDOUT, "SPI Setup Complete\r\n").unwrap();
+    let mut test = [1, 2, 3, 4u8];
+    match SPI.transfer(&mut test) {
+        Ok(v) => {
+            ufmt::uwrite!(STDOUT, "OK\r\n").unwrap();
+        }
+        Err(e) => {
+            ufmt::uwrite!(STDOUT, "Err {:?}\r\n", e).unwrap();
+        }
+    }
+    ufmt::uwrite!(STDOUT, "Transfer Complete\r\n").unwrap();
+}
+
+fn test_imu() {
+    ufmt::uwrite!(STDOUT, "Yo...\r\n").unwrap();
 }
 
 #[no_mangle]
@@ -185,6 +208,8 @@ pub fn real_main() {
 
     //test_ble();
     //test_nau();
-    test_icm();
+    //test_icm();
     //BRIGHT_LED.output_high();
+    //test_spi();
+    test_imu();
 }
