@@ -1,0 +1,9 @@
+[build]
+target = "avr-atmega4809.json"
+
+[unstable]
+build-std = ["core", "alloc"]
+build-std-features = []
+
+[target.'cfg(target_arch = "avr")']
+runner = [ "../avr-upload.sh" ]
