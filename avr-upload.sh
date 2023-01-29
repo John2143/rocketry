@@ -20,6 +20,9 @@ FUSE7="0x00" # APPEND 0x0
 FUSE8="0x00" # BOOTEND 0x0
 FUSEA="0xC5" # LOCKBIT 0xC5, must be C5
 
+USB_RESET=0
+SCREEN_BAUD=0
+
 if [[ "Z$2" == "Zfuse" ]]; then
     FUSEFLAGS="
         -Ufuse0:w:$FUSE0:m \
@@ -30,13 +33,30 @@ if [[ "Z$2" == "Zfuse" ]]; then
         -Ufuse7:w:$FUSE7:m \
         -Ufuse8:w:$FUSE8:m"
         # skip for now # -Ufusea:w:$(FUSE0):m 
+elif [[ "Z$2" == "Zreset" ]]; then
+    USB_RESET=1
+    FUSEFLAGS=""
 else
     FUSEFLAGS=""
 fi
 
+if [[ "Z$3" != "Z" ]]; then
+    SCREEN_BAUD=$3
+fi
+
 set -x
 
-avr-objcopy -O ihex -R .eeprom $1 $1.hex
+# avr-objcopy -O ihex -R .eeprom $1 $1.hex
+
+if [[ $USB_RESET ]]; then
+    # in fish, () && set -x PORT () && echo $PORT
+    ARDUINO=$(lsusb | grep duino | choose 3 | sed "s/://")
+    sudo "../testing/usbreset" "/dev/bus/usb/001/$ARDUINO"
+
+    sleep .1
+    PORT=$(ls /dev/ttyACM* | tail -n 1)
+    echo "new port is $PORT"
+fi
 
 # put the microcontroller into a listening state
 stty -F "${PORT}" 1200
@@ -47,6 +67,10 @@ avrdude -v -p$PART -c$PROGRAMMER -P$PORT -b$BAUD \
     -D -e -Uflash:w:$1:e
     # skip for now # -Ufusea:w:$(FUSE0):m 
     #-Uflash:w:/tmp/arduino_build_62094/sketch_jan10a.ino.hex:i
+
+if [[ $SCREEN_BAUD ]]; then
+    screen $PORT $SCREEN_BAUD
+fi
 
 #screen $PORT 9600 8n1
 set +x
