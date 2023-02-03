@@ -26,7 +26,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     time::sleep(Duration::from_secs(2)).await;
 
     // find the device we're interested in
-    let light = find_light(&central).await.unwrap();
+    let light = find_tb(&central).await.unwrap();
+
+    println!("connecting...");
 
     // connect to the device
     light.connect().await?;
@@ -53,13 +55,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn find_light(central: &Adapter) -> Option<Peripheral> {
+async fn find_tb(central: &Adapter) -> Option<Peripheral> {
     for p in central.peripherals().await.unwrap() {
-        dbg!(&p);
-        dbg!(p.properties().await.unwrap().unwrap().local_name);
-        //if p.properties().await.unwrap().unwrap().address {
-        //return Some(p);
-        //}
+        let local_name = p.properties().await.unwrap().unwrap().local_name;
+        if let Some(s) = local_name {
+            dbg!(&s);
+            if s == "RT Test Bench" {
+                return Some(p);
+            }
+        }
     }
     None
 }

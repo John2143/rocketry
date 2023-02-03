@@ -68,7 +68,7 @@ avrdude -v -p$PART -c$PROGRAMMER -P$PORT -b$BAUD \
     # skip for now # -Ufusea:w:$(FUSE0):m 
     #-Uflash:w:/tmp/arduino_build_62094/sketch_jan10a.ino.hex:i
 
-if [[ $SCREEN_BAUD ]]; then
+if [[ $SCREEN_BAUD > 0 ]]; then
     screen $PORT $SCREEN_BAUD
 fi
 

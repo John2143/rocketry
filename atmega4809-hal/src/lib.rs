@@ -57,6 +57,8 @@ pub mod usart;
 
 pub struct Delay;
 
+pub use embedded_hal::blocking::delay::DelayMs;
+
 pub fn set16(p: *mut u8, v: u16) {
     // little endian?
     unsafe {
@@ -67,8 +69,10 @@ pub fn set16(p: *mut u8, v: u16) {
 
 impl embedded_hal::blocking::delay::DelayMs<u16> for Delay {
     fn delay_ms(&mut self, ms: u16) {
-        for _ in 0..(ms * 1000) {
-            unsafe { core::arch::asm!("nop") };
+        for _ in 0..ms {
+            for _ in 0..1000 {
+                unsafe { core::arch::asm!("nop") };
+            }
         }
     }
 }

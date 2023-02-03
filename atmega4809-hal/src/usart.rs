@@ -27,6 +27,8 @@ pub const USART1: u16 = 0x0820;
 pub const USART2: u16 = 0x0840;
 pub const USART3: u16 = 0x0860;
 
+pub const BAUD9600: u16 = (17 << 6) | 0b0001_1000;
+
 pub enum CommunicationMode {
     ///Asynchronous USART
     Asynchronous = 0x00,
@@ -95,6 +97,10 @@ impl<const UADDR: u16, const ALT: bool> USART<UADDR, ALT> {
         }
     }
 
+    pub fn change_baud(baud: u16) {
+        set16(unsafe { Self::addr().offset(0x08) }, baud);
+    }
+
     pub fn setup(
         baud: u16,
         m: CommunicationMode,
@@ -103,7 +109,7 @@ impl<const UADDR: u16, const ALT: bool> USART<UADDR, ALT> {
         wsize: CharacterSize,
     ) {
         // 1. Set the baud rate (USARTn.BAUD).
-        set16(unsafe { Self::addr().offset(0x08) }, baud);
+        Self::change_baud(baud);
         //let baud = 0b00010001 | 0b00011010 << 8;
         //set16(unsafe { Self::addr().offset(0x08) }, baud);
 
@@ -193,13 +199,13 @@ impl<const UADDR: u16, const ALT: bool> USART<UADDR, ALT> {
         // 0x00000000  0xe
     }
 
-    pub fn transact(mut write: &[u8], mut read: &mut [u8]) -> Result<(), USARTError> {
-        GPIO::PORTA(1).output_high();
+    pub fn transact<'k>(mut write: &[u8], read: &'k mut [u8]) -> Result<&'k [u8], USARTError> {
         let mut read_is_done = false;
+        let mut empty_reads = 0u16;
+        let mut char_count = 0;
         loop {
             let status = Self::get_bus_status();
             if !write.is_empty() && status.dreif() {
-                //crate::pwm::PWM::set_cmp1(0xAF00 / (write.len() as u16));
                 match write.split_first() {
                     Some((to_write, rest)) => {
                         unsafe { Self::addr().offset(0x02).write_volatile(*to_write) };
@@ -208,29 +214,29 @@ impl<const UADDR: u16, const ALT: bool> USART<UADDR, ALT> {
                     None => {}
                 }
             }
-            if status.rxcif() {
-                //we can read a new byte
-                read = match read.split_first_mut() {
-                    Some((first, rest)) => {
-                        *first = unsafe { Self::addr().offset(0x00).read_volatile() };
-                        if *first == b'\n' {
-                            //GPIO::PORTA(0).output_high();
-                            read_is_done = true;
-                        }
-                        rest
-                    }
-                    None => {
-                        Self::stop();
-                        return Err(USARTError::ReadOverflow);
-                    }
+
+            if status.rxcif() && char_count < read.len() {
+                let new_byte = unsafe { Self::addr().offset(0x00).read_volatile() };
+                read[char_count] = new_byte;
+                char_count += 1;
+
+                if new_byte == b'\n' {
+                    read_is_done = true;
                 }
+                empty_reads = 0;
+            } else {
+                empty_reads += 1;
             }
-            if write.is_empty() && status.txcif() && (read.is_empty() || read_is_done) {
+
+            if write.is_empty()
+                && status.txcif()
+                && (read.is_empty() || read_is_done || empty_reads >= 0x2000)
+            {
                 break;
             }
         }
-        GPIO::PORTA(1).output_low();
-        Ok(())
+
+        Ok(&read[0..char_count])
     }
 
     pub fn stop() {
@@ -282,6 +288,6 @@ impl<const UADDR: u16, const ALT: bool> ufmt::uWrite for USART<UADDR, ALT> {
     type Error = USARTError;
 
     fn write_str(&mut self, s: &str) -> Result<(), Self::Error> {
-        Self::transact(s.as_bytes(), &mut [])
+        Self::transact(s.as_bytes(), &mut []).map(drop)
     }
 }
