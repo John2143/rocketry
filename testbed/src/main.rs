@@ -3,22 +3,24 @@
 #![no_std]
 #![no_main]
 
-use core::str::from_utf8_unchecked;
+mod process;
 
 use atmega4809_hal::clock::{self, ClockPrescaler, ClockSelect};
 use atmega4809_hal::gpio::{GPIO, ISC};
 use atmega4809_hal::i2c::I2C;
 use atmega4809_hal::usart::{BAUD9600, USART, USART1, USART3};
-use atmega4809_hal::{Delay, DelayMs};
 use ufmt::uwrite;
 
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
+    //let _ = uwrite!(STDOUT, "\r\nPanic!\r\n");
+    //if let Some(loc) = _info.location() {
+    //let _ = uwrite!(STDOUT, "File: {}\r\nLine: {}\r\n", loc.file(), loc.line());
+    //}
     loop {
         ONBOARD_LED.output_high();
         //poweroff
         clock::Sleep::Idle.set_sleep();
-        ONBOARD_LED.output_low();
     }
 }
 
@@ -62,7 +64,7 @@ pub fn main() -> ! {
     for _ in 0..0x100 {
         unsafe { core::arch::asm!("nop") };
     }
-    uwrite!(STDOUT, "Idling...\r\n").unwrap();
+    let _ = uwrite!(STDOUT, "Idling...\r\n");
 
     Ble::off();
     Stdout::off();
@@ -71,9 +73,10 @@ pub fn main() -> ! {
 }
 
 pub fn real_main() {
+    //default settings
     ClockSelect::OSC20M.set_clock();
-    //ClockSelect::OSCULP32K.set_clock();
-    ClockPrescaler::None.set_clock_prescaler();
+    ClockPrescaler::D6.set_clock_prescaler();
+
     setup_usart();
     I2C::setup();
 
@@ -84,7 +87,7 @@ pub fn real_main() {
 
     ANALOG_DRDY.output_disable();
     ANALOG_DRDY.pin_ctrl_pullup(false);
-    ANALOG_DRDY.pin_ctrl_isc(&ISC::IntDisable);
+    ANALOG_DRDY.pin_ctrl_isc(&ISC::Rising);
 
     BLE_STATE.output_disable();
     BLE_STATE.pin_ctrl_pullup(false);
@@ -104,65 +107,25 @@ pub fn real_main() {
 
     // maybe need pullup when using serial?
     //GPIO::PORTC(4).output_enable();
-    //GPIO::PORTC(4).pin_ctrl_pullup(true);
+    GPIO::PORTC(5).pin_ctrl_pullup(false);
 
-    uwrite!(STDOUT, "Startup complete.\r\n").unwrap();
-    let mut k = [0; 10];
-    let res = Stdout::transact(b"Write: ", &mut k).unwrap();
-    uwrite!(STDOUT, "nuum chars: {}\r\n", res.len()).unwrap();
+    let _ = uwrite!(STDOUT, "Startup complete.\r\n");
 
-    ble_begin();
-    loop {
-        send_ble_terminal_heartbeat();
-    }
+    process::ble_begin();
+    let mut nau = process::nau_setup().unwrap_or_else(|_| panic!("Nau setup failed"));
+    process::nau_run(&mut nau);
+}
+
+#[no_mangle]
+pub fn __vector_20() {
+    //ONBOARD_LED.output_high();
+}
+
+#[no_mangle]
+pub fn __vector_34() {
+    ONBOARD_LED.output_high();
 }
 
 pub fn run_bt_command() {
     todo!()
-}
-
-fn ble_begin() {
-    //Delay.delay_ms(200);
-    //BLE_KEY.output_high();
-    //BLE_POWER.output_high();
-
-    //Delay.delay_ms(200);
-
-    //BLE_POWER.output_low();
-    BLE_KEY.output_low();
-    BLE_POWER.output_high();
-    Ble::change_baud(BAUD9600);
-    Delay.delay_ms(200);
-
-    // Assume \r\n:
-    //
-    // AT+ROLE=0 -> OK
-    // AT+PSWD=1234 -> OK
-    // AT+NAME=Rocketry Test Bench -> OK
-    // AT+BIND=ACD6,18,E95B5F
-}
-
-fn send_ble_terminal_heartbeat() {
-    //loop {
-    //let mut k = [0; 10];
-    //let res = Stdout::transact(b"Write: ", &mut k).unwrap();
-    //if res.len() > 0 {
-    //break;
-    //}
-    //}
-
-    ONBOARD_LED.output_high();
-    let mut k = [0u8; 10];
-    match Ble::transact(b"ping\r\n", &mut k) {
-        Ok(d) => {
-            uwrite!(STDOUT, "-{}\r\n", d.len()).unwrap();
-            let d = unsafe { from_utf8_unchecked(d) };
-            uwrite!(STDOUT, "$$$${}\r\n", d).unwrap();
-        }
-        Err(_) => {
-            uwrite!(STDOUT, "+{}\r\n", k[0]).unwrap();
-        }
-    }
-    ONBOARD_LED.output_low();
-    Delay.delay_ms(500);
 }

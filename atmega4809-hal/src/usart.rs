@@ -151,7 +151,7 @@ impl<const UADDR: u16, const ALT: bool> USART<UADDR, ALT> {
         //crate::gpio::GPIO::PORTC(4).output_high();
 
         // (3.5, enable ints)
-        //unsafe { Self::addr().offset(0x05).write_volatile(0b1010_0000) };
+        unsafe { Self::addr().offset(0x05).write_volatile(0b1110_0000) };
 
         for _ in 0..0xff {
             unsafe { core::arch::asm!("nop") };

@@ -48,7 +48,7 @@ set -x
 
 # avr-objcopy -O ihex -R .eeprom $1 $1.hex
 
-if [[ $USB_RESET ]]; then
+if [[ $USB_RESET > 0 ]]; then
     # in fish, () && set -x PORT () && echo $PORT
     ARDUINO=$(lsusb | grep duino | choose 3 | sed "s/://")
     sudo "../testing/usbreset" "/dev/bus/usb/001/$ARDUINO"
