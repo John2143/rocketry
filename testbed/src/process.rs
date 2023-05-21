@@ -38,6 +38,7 @@ pub fn nau_setup() -> Result<Nau, FatalStartupError> {
     let _ = uwrite!(STDOUT, "Calibrating.");
     v.begin_afe_calibration()
         .map_err(|_| FatalStartupError::CalibrationFailure("nau start"))?;
+
     loop {
         match v.poll_afe_calibration_status().unwrap() {
             nau7802::AfeCalibrationStatus::InProgress => {
@@ -72,9 +73,9 @@ pub fn nau_run(n: &mut Nau7802<I2C>) {
         }
     }
 
-    ufmt::uwriteln!(STDOUT, "Triggered.\r\n").unwrap();
+    ufmt::uwriteln!(BLE, "Triggered.\r\n").unwrap();
 
-    for _ in 0..1000 {
+    for _ in 0..10000 {
         let s = read_nau(n).unwrap();
         let s = s - first;
 
