@@ -1,7 +1,9 @@
 #!/bin/bash
 PART="atmega4809"
 PROGRAMMER="jtag2updi"
-BAUD=57600
+#BAUD=9600
+#BAUD=57600
+BAUD=115200
 
 if [[ "Z$PORT" == "Z" ]]; then
     echo "Please set \$PORT to your microcontroller location (ex. /dev/ttyACM1)"
@@ -33,6 +35,7 @@ if [[ "Z$2" == "Zfuse" ]]; then
         -Ufuse7:w:$FUSE7:m \
         -Ufuse8:w:$FUSE8:m"
         # skip for now # -Ufusea:w:$(FUSE0):m 
+
 elif [[ "Z$2" == "Zreset" ]]; then
     USB_RESET=1
     FUSEFLAGS=""
@@ -69,7 +72,8 @@ avrdude -v -p$PART -c$PROGRAMMER -P$PORT -b$BAUD \
     -D -e -Uflash:w:$1:e
     # skip for now # -Ufusea:w:$(FUSE0):m 
     #-Uflash:w:/tmp/arduino_build_62094/sketch_jan10a.ino.hex:i
-#avrdude v -patmega4809 -cjtag2updi -P/dev/ttyACM1 -b115200 -e -D -Uflash:w:/tmp/arduino_build_365595/Blink.ino.hex:i -Ufuse2:w:0x01:m -Ufuse5:w:0xC9:m -Ufuse8:w:0x00:m {upload.extra_files} 
+
+# avrdude v -patmega4809 -cjtag2updi -P/dev/ttyACM1 -b115200 -e -D -Uflash:w:/tmp/arduino_build_365595/Blink.ino.hex:i -Ufuse2:w:0x01:m -Ufuse5:w:0xC9:m -Ufuse8:w:0x00:m {upload.extra_files} 
 
 if [[ $SCREEN_BAUD > 0 ]]; then
     minicom $PORT -b $SCREEN_BAUD
