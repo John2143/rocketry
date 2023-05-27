@@ -46,30 +46,33 @@ fi
 
 set -x
 
-# avr-objcopy -O ihex -R .eeprom $1 $1.hex
-
 if [[ $USB_RESET > 0 ]]; then
-    # in fish, () && set -x PORT () && echo $PORT
-    ARDUINO=$(lsusb | grep duino | choose 3 | sed "s/://")
-    sudo "../testing/usbreset" "/dev/bus/usb/001/$ARDUINO"
+    stty -F "${PORT}" 1200
+    sudo "../testing/usbreset" "${PORT}"
 
-    sleep .1
-    PORT=$(ls /dev/ttyACM* | tail -n 1)
-    echo "new port is $PORT"
+    # in fish, () && set -x PORT () && echo $PORT
+    #ARDUINO=$(lsusb | grep duino | choose 1 3 | sed "s/://" | tr " " "/")
+    #sudo "../testing/usbreset" "/dev/bus/usb/$ARDUINO"
+
+    #sleep .1
+    #PORT=$(ls /dev/ttyACM* | tail -n 1)
+    #echo "new port is $PORT"
 fi
 
-# put the microcontroller into a listening state
-stty -F "${PORT}" 1200
-sleep .5
+while :; do
+    sleep .5
+    [ -c "${PORT}" ] && break
+done
 
 avrdude -v -p$PART -c$PROGRAMMER -P$PORT -b$BAUD \
     $FUSEFLAGS \
     -D -e -Uflash:w:$1:e
     # skip for now # -Ufusea:w:$(FUSE0):m 
     #-Uflash:w:/tmp/arduino_build_62094/sketch_jan10a.ino.hex:i
+#avrdude v -patmega4809 -cjtag2updi -P/dev/ttyACM1 -b115200 -e -D -Uflash:w:/tmp/arduino_build_365595/Blink.ino.hex:i -Ufuse2:w:0x01:m -Ufuse5:w:0xC9:m -Ufuse8:w:0x00:m {upload.extra_files} 
 
 if [[ $SCREEN_BAUD > 0 ]]; then
-    screen $PORT $SCREEN_BAUD
+    minicom $PORT -b $SCREEN_BAUD
 fi
 
 #screen $PORT 9600 8n1
