@@ -1,3 +1,5 @@
+#[repr(u8)]
+#[derive(Clone, Copy)]
 pub enum ClockSelect {
     ///20MHz internal
     OSC20M = 0x0,
@@ -25,6 +27,8 @@ impl ClockSelect {
     }
 }
 
+#[repr(u8)]
+#[derive(Clone, Copy)]
 pub enum ClockPrescaler {
     None = 0xff,
     D2 = 0,
@@ -39,6 +43,8 @@ pub enum ClockPrescaler {
     D24 = 11,
     D48 = 12,
 }
+
+
 impl ClockPrescaler {
     pub fn set_clock_prescaler(&self) {
         let pdiv = *self as u8;

@@ -1,3 +1,4 @@
+use embedded_hal::spi::{blocking::Transfer, ErrorType, ErrorKind};
 use ufmt::derive::uDebug;
 
 pub struct SPI;
@@ -79,22 +80,31 @@ impl SPI {
     pub fn get_bus_status() -> BusStatus {
         BusStatus(unsafe { SPI0.offset(0x03).read_volatile() })
     }
+}
 
-    pub fn transfer<'w>(&mut self, words: &'w mut [u8]) -> Result<&'w [u8], SPIError> {
+impl Transfer<u8> for SPI {
+    fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Self::Error> {
         let mut wptr = 0;
         let mut rptr = 0;
+
         loop {
             let status = Self::get_bus_status();
-            if wptr < words.len() && status.dreif() {
-                Self::raw_write_byte(words[wptr]);
+            if wptr < write.len() && status.dreif() {
+                Self::raw_write_byte(write[wptr]);
                 wptr += 1;
             }
-            if rptr < words.len() && status.rxcif() {
-                words[rptr] = Self::raw_read_byte();
-                rptr += 1;
+
+            if status.rxcif() {
+                if rptr < read.len() {
+                    read[rptr] = Self::raw_read_byte();
+                    rptr += 1;
+                } else {
+                    return Err(ErrorKind::Overrun);
+                }
             }
 
             if status.bufovf() {
+                // TODO ??
                 //return Err(SPIError::ReadOverflow);
             }
 
@@ -102,7 +112,7 @@ impl SPI {
                 unreachable!("SPI0.SSIF somehow triggered?");
             }
 
-            if status.txcif() && words.len() == wptr {
+            if status.txcif() && write.len() == wptr {
                 // && wptr == rptr ?? not sure if SPI always
                 // sends the same amount of data both dirs
                 //
@@ -112,17 +122,15 @@ impl SPI {
             }
         }
 
-        Ok(words)
+        Ok(())
     }
 }
 
-impl embedded_hal::blocking::spi::Transfer<u8> for SPI {
-    type Error = SPIError;
-
-    fn transfer<'w>(&mut self, words: &'w mut [u8]) -> Result<&'w [u8], Self::Error> {
-        self.transfer(words)
-    }
+impl ErrorType for SPI {
+    type Error = ErrorKind;
 }
+
+
 
 pub struct BusStatus(u8);
 

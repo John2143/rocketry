@@ -1,3 +1,5 @@
+use embedded_hal::digital::{blocking::OutputPin, ErrorType};
+
 pub enum GPIO {
     PORTA(u8),
     PORTB(u8),
@@ -119,9 +121,7 @@ impl GPIO {
     }
 }
 
-impl embedded_hal::digital::v2::OutputPin for GPIO {
-    type Error = !;
-
+impl OutputPin for GPIO {
     ///Make sure to enable the output mode for this pin
     fn set_low(&mut self) -> Result<(), Self::Error> {
         self.output_low();
@@ -133,4 +133,8 @@ impl embedded_hal::digital::v2::OutputPin for GPIO {
         self.output_high();
         Ok(())
     }
+}
+
+impl ErrorType for GPIO {
+    type Error = !;
 }
