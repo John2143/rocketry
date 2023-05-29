@@ -1,3 +1,5 @@
+use embedded_hal::i2c::ErrorKind;
+
 pub struct I2C;
 /*
  *
@@ -66,6 +68,16 @@ pub enum I2CError {
     NACK,
     PartialTransmit(u8),
     ArbLost,
+}
+
+impl embedded_hal::i2c::Error for I2CError {
+    fn kind(&self) -> embedded_hal::i2c::ErrorKind {
+        match self {
+            I2CError::NACK => ErrorKind::Other,
+            I2CError::PartialTransmit(_) => ErrorKind::Other,
+            I2CError::ArbLost => ErrorKind::ArbitrationLoss,
+        }
+    }
 }
 
 impl I2C {
@@ -347,3 +359,57 @@ impl BusStatus {
 
 //impl embedded_hal::i2c::blocking::I2c for I2C {
 //}
+impl embedded_hal::i2c::blocking::I2c for I2C {
+    fn read(&mut self, address: u8, buffer: &mut [u8]) -> Result<(), Self::Error> {
+        todo!()
+    }
+
+    fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), Self::Error> {
+        todo!()
+    }
+
+    fn write_iter<B>(&mut self, address: u8, bytes: B) -> Result<(), Self::Error>
+        where
+            B: IntoIterator<Item = u8> {
+        todo!()
+    }
+
+    fn write_read(
+            &mut self,
+            address: u8,
+            bytes: &[u8],
+            buffer: &mut [u8],
+        ) -> Result<(), Self::Error> {
+        todo!()
+    }
+
+    fn write_iter_read<B>(
+            &mut self,
+            address: u8,
+            bytes: B,
+            buffer: &mut [u8],
+        ) -> Result<(), Self::Error>
+        where
+            B: IntoIterator<Item = u8> {
+        todo!()
+    }
+
+    fn transaction<'a>(
+            &mut self,
+            address: u8,
+            operations: &mut [embedded_hal::i2c::blocking::Operation<'a>],
+        ) -> Result<(), Self::Error> {
+        todo!()
+    }
+
+    fn transaction_iter<'a, O>(&mut self, address: u8, operations: O) -> Result<(), Self::Error>
+        where
+            O: IntoIterator<Item = embedded_hal::i2c::blocking::Operation<'a>> {
+        todo!()
+    }
+
+}
+
+impl embedded_hal::i2c::ErrorType for I2C {
+    type Error = I2CError;
+}

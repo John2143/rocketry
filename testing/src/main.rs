@@ -49,34 +49,34 @@ const BRIGHT_LED: GPIO = GPIO::PORTA(0);
 const PWM_PIN: GPIO = GPIO::PORTB(1);
 
 pub fn test_nau() {
-    let mut v = nau7802::Nau7802::new_with_settings(
-        I2C,
-        nau7802::Ldo::L3v3,
-        nau7802::Gain::G128,
-        nau7802::SamplesPerSecond::SPS80,
-        &mut Delay,
-    )
-    .unwrap();
+    //let mut v = nau7802::Nau7802::new_with_settings(
+        //I2C,
+        //nau7802::Ldo::L3v3,
+        //nau7802::Gain::G128,
+        //nau7802::SamplesPerSecond::SPS80,
+        //&mut Delay,
+    //)
+    //.unwrap();
 
-    loop {
-        let s = loop {
-            match v.read() {
-                Ok(v) => break v,
-                Err(_) => sleep(10),
-            };
-        };
+    //loop {
+        //let s = loop {
+            //match v.read() {
+                //Ok(v) => break v,
+                //Err(_) => sleep(10),
+            //};
+        //};
 
-        ufmt::uwrite!(STDOUT, "{}\r\n", s).unwrap();
-        // 0 - 200_000 -> 0x1000 - 0x1800
-        let sanatized = match s + 100_000 {
-            i32::MIN..=0 => 0,
-            v @ 1..=200_000 => v,
-            200_001..=i32::MAX => 200_000,
-        };
+        //ufmt::uwrite!(STDOUT, "{}\r\n", s).unwrap();
+        //// 0 - 200_000 -> 0x1000 - 0x1800
+        //let sanatized = match s + 100_000 {
+            //i32::MIN..=0 => 0,
+            //v @ 1..=200_000 => v,
+            //200_001..=i32::MAX => 200_000,
+        //};
 
-        PWM::set_cmp1(((sanatized * 0x800) / 200_000 + 0x1000).try_into().unwrap());
-        sleep(0xff00);
-    }
+        //PWM::set_cmp1(((sanatized * 0x800) / 200_000 + 0x1000).try_into().unwrap());
+        //sleep(0xff00);
+    //}
 }
 
 pub fn test_bme() {

@@ -2,7 +2,7 @@
 target = "avr-atmega4809.json"
 
 [unstable]
-build-std = ["core", "alloc"]
+build-std = ["core"]
 build-std-features = []
 
 [target.'cfg(target_arch = "avr")']
