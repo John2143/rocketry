@@ -7,7 +7,7 @@
 extern crate alloc;
 
 pub mod avr_alloc;
-pub mod bme280;
+//pub mod bme280;
 pub mod ints;
 pub mod testing;
 
@@ -81,12 +81,31 @@ pub fn test_nau() {
 
 pub fn test_bme() {
     //let b = bme280::i2c::BME280::new(I2C, 0x77);
+    let mut bme = bme280::i2c::BME280::new(I2C, 0x77);
+
+    // or, initialize the BME280 using the secondary I2C address 0x77
+    // let mut bme280 = BME280::new_secondary(i2c_bus, Delay);
+
+    // or, initialize the BME280 using a custom I2C address
+    // let bme280_i2c_addr = 0x88;
+    // let mut bme280 = BME280::new(i2c_bus, bme280_i2c_addr, Delay);
+
+    // initialize the sensor
+    bme.init().unwrap();
+
+    // measure temperature, pressure, and humidity
+    let measurements = bme.measure().unwrap();
+
+    ufmt::uwrite!(STDOUT, "Relative Humidity = {}%", measurements.humidity).unwrap();
+    ufmt::uwrite!(STDOUT, "Temperature = {} deg C", measurements.temperature).unwrap();
+    ufmt::uwrite!(STDOUT, "Pressure = {} pascals", measurements.pressure).unwrap();
 }
 
 fn setup_pwm() {
     PWM_PIN.output_enable();
     PWM_PIN.pin_ctrl_isc(&ISC::IntDisable);
-    PWM::change_port_tca(atmega4809_hal::pwm::PWMPort::PORTB);
+    PWM::change_port_tca(atmega4809_hal::pwm::PWMPort::PORTB); // pin 28
+    //PWM::set_per(69); //38.13khz (IR transmission = 38khz)
     PWM::set_per(0xAF00); //60hz
     PWM::enable(atmega4809_hal::pwm::WaveformGenerationMode::SINGLESLOPE);
     PWM::set_cmp1(0xAF00 / 2); //60hz
@@ -94,7 +113,7 @@ fn setup_pwm() {
 
 fn setup_usart() {
     Stdout::setup(
-        BAUD9600 / 6, //9600 / 6 = 57200
+        BAUD9600 / 12, //9600 / 6 = 57200
         atmega4809_hal::usart::CommunicationMode::Asynchronous,
         atmega4809_hal::usart::ParityMode::Disabled,
         atmega4809_hal::usart::StopBitMode::One,
@@ -163,7 +182,8 @@ pub fn main() -> ! {
     for _ in 0..10 {
         sleep(0xffff);
     }
-    ufmt::uwrite!(STDOUT, "Idling...\r\n").unwrap();
+
+    let _ = ufmt::uwrite!(STDOUT, "Idling...\r\n");
 
     //Ble::off();
     Stdout::off();
@@ -189,6 +209,7 @@ pub fn real_main() {
 
     I2C::setup();
     setup_pwm();
+    //test_pwm();
     setup_usart();
 
     //let mut x = alloc::vec::Vec::new();
@@ -206,6 +227,7 @@ pub fn real_main() {
 
     ufmt::uwrite!(STDOUT, "Startup complete...\r\n").unwrap();
 
+    test_bme();
     //test_ble();
     //test_nau();
     //test_icm();

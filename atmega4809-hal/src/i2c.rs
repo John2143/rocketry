@@ -346,3 +346,7 @@ impl i2c::WriteRead for I2C {
         Ok(())
     }
 }
+
+
+impl embedded_hal::i2c::blocking::I2c for I2C {
+}
