@@ -66,20 +66,20 @@ pub fn set16(p: *mut u8, v: u16) {
 }
 
 //impl DelayMs for Delay {
-    /////TODO: make this accurate
-    //fn delay_ms(&mut self, ms: u16) {
-        //let c = clock::ClockSelect::get_clock();
-        //let loop_max = match c {
-            //clock::ClockSelect::OSC20M => 202,
-            //clock::ClockSelect::OSCULP32K => 32,
-            //clock::ClockSelect::XOSC32K => 32,
-            //clock::ClockSelect::EXTCLK => todo!(),
-        //};
+/////TODO: make this accurate
+//fn delay_ms(&mut self, ms: u16) {
+//let c = clock::ClockSelect::get_clock();
+//let loop_max = match c {
+//clock::ClockSelect::OSC20M => 202,
+//clock::ClockSelect::OSCULP32K => 32,
+//clock::ClockSelect::XOSC32K => 32,
+//clock::ClockSelect::EXTCLK => todo!(),
+//};
 
-        //for _ in 0..ms {
-            //for _ in 0..loop_max {
-                //unsafe { core::arch::asm!("nop") };
-            //}
-        //}
-    //}
+//for _ in 0..ms {
+//for _ in 0..loop_max {
+//unsafe { core::arch::asm!("nop") };
+//}
+//}
+//}
 //}

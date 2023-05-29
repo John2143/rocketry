@@ -1,4 +1,4 @@
-use embedded_hal::spi::{blocking::Transfer, ErrorType, ErrorKind};
+use embedded_hal::spi::{blocking::Transfer, ErrorKind, ErrorType};
 use ufmt::derive::uDebug;
 
 pub struct SPI;
@@ -129,8 +129,6 @@ impl Transfer<u8> for SPI {
 impl ErrorType for SPI {
     type Error = ErrorKind;
 }
-
-
 
 pub struct BusStatus(u8);
 

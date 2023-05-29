@@ -315,36 +315,35 @@ impl BusStatus {
 }
 
 //impl i2c::Read for I2C {
-    //type Error = I2CError;
+//type Error = I2CError;
 
-    //fn read(&mut self, address: u8, buffer: &mut [u8]) -> Result<(), Self::Error> {
-        //Self::read_to_buf(address, buffer)
-    //}
+//fn read(&mut self, address: u8, buffer: &mut [u8]) -> Result<(), Self::Error> {
+//Self::read_to_buf(address, buffer)
+//}
 //}
 
 //impl i2c::Write for I2C {
-    //type Error = I2CError;
+//type Error = I2CError;
 
-    //fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), Self::Error> {
-        //Self::write(address, bytes)
-    //}
+//fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), Self::Error> {
+//Self::write(address, bytes)
+//}
 //}
 
 //impl i2c::WriteRead for I2C {
-    //type Error = I2CError;
+//type Error = I2CError;
 
-    //fn write_read(
-        //&mut self,
-        //address: u8,
-        //bytes: &[u8],
-        //buffer: &mut [u8],
-    //) -> Result<(), Self::Error> {
-        //self.write(address, bytes)?;
-        //self.read(address, buffer)?;
-        //Ok(())
-    //}
+//fn write_read(
+//&mut self,
+//address: u8,
+//bytes: &[u8],
+//buffer: &mut [u8],
+//) -> Result<(), Self::Error> {
+//self.write(address, bytes)?;
+//self.read(address, buffer)?;
+//Ok(())
 //}
-
+//}
 
 //impl embedded_hal::i2c::blocking::I2c for I2C {
 //}
