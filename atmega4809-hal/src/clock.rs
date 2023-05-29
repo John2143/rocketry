@@ -44,7 +44,6 @@ pub enum ClockPrescaler {
     D48 = 12,
 }
 
-
 impl ClockPrescaler {
     pub fn set_clock_prescaler(&self) {
         let pdiv = *self as u8;
@@ -66,6 +65,8 @@ impl ClockPrescaler {
     }
 }
 
+#[repr(u8)]
+#[derive(Clone, Copy)]
 pub enum Sleep {
     Idle = 0x0,
     Standby = 0x1,
