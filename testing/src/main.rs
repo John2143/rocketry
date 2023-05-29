@@ -17,7 +17,7 @@ use atmega4809_hal::clock::{self, ClockPrescaler, ClockSelect};
 use atmega4809_hal::gpio::{GPIO, ISC};
 use atmega4809_hal::i2c::I2C;
 use atmega4809_hal::pwm::PWM;
-use atmega4809_hal::usart::{USART, USART1, USART3};
+use atmega4809_hal::usart::{USART, USART1, USART3, BAUD9600};
 use atmega4809_hal::Delay;
 use avr_alloc::AVRAlloc;
 
@@ -94,20 +94,12 @@ fn setup_pwm() {
 
 fn setup_usart() {
     Stdout::setup(
-        ((17 << 6) | 0b0001_1000), //9600 / 6 = 57200
+        BAUD9600 / 6, //9600 / 6 = 57200
         atmega4809_hal::usart::CommunicationMode::Asynchronous,
         atmega4809_hal::usart::ParityMode::Disabled,
         atmega4809_hal::usart::StopBitMode::One,
         atmega4809_hal::usart::CharacterSize::B8,
     );
-
-    //Ble::setup(
-    //((17 << 6) | 0b0001_1000) / 4, //9600 / 4 = 38400
-    //atmega4809_hal::usart::CommunicationMode::Asynchronous,
-    //atmega4809_hal::usart::ParityMode::Disabled,
-    //atmega4809_hal::usart::StopBitMode::One,
-    //atmega4809_hal::usart::CharacterSize::B8,
-    //);
 }
 
 fn test_pwm() {
@@ -165,6 +157,7 @@ fn test_imu() {
 
 #[no_mangle]
 pub fn main() -> ! {
+    sleep(0xff);
     real_main();
     // Wait for any peripherials to finish.
     for _ in 0..10 {
@@ -187,11 +180,13 @@ pub fn real_main() {
     ONBOARD_LED.pin_ctrl_isc(&ISC::IntDisable);
     BRIGHT_LED.output_enable();
     BRIGHT_LED.pin_ctrl_isc(&ISC::IntDisable);
+    sleep(0xffff);
 
     //testing::blink_led();
 
     ONBOARD_LED.output_low();
     BRIGHT_LED.output_low();
+
     I2C::setup();
     setup_pwm();
     setup_usart();
@@ -201,15 +196,20 @@ pub fn real_main() {
     //let ptr = x.as_ptr() as u16;
     //let mut x2 = alloc::vec![1u8;128];
     //let ptr2 = x2.as_ptr() as u16;
-    sleep(0xffff);
+
+    // Wait for all systems/clocks to update just in case
+    sleep(0x100);
+
     //ufmt::uwrite!(STDOUT, "Nice\r\n").unwrap();
     //ufmt::uwrite!(STDOUT, "Test Heaps: 1=0x{:x} 2=0x{:x}\r\n", ptr, ptr2).unwrap();
     //ufmt::uwrite!(STDOUT, "Test Heaps: 1=0x{:x} 2=0x{:x}\r\n", 1, 2).unwrap();
+
+    ufmt::uwrite!(STDOUT, "Startup complete...\r\n").unwrap();
 
     //test_ble();
     //test_nau();
     //test_icm();
     //BRIGHT_LED.output_high();
     //test_spi();
-    test_imu();
+    //test_imu();
 }
