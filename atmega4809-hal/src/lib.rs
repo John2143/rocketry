@@ -48,6 +48,8 @@
 0x1300 USERROW User Row
 */
 
+use embedded_hal::delay::blocking::DelayUs;
+
 pub mod clock;
 pub mod gpio;
 pub mod i2c;
@@ -65,21 +67,26 @@ pub fn set16(p: *mut u8, v: u16) {
     }
 }
 
-//impl DelayMs for Delay {
-/////TODO: make this accurate
-//fn delay_ms(&mut self, ms: u16) {
-//let c = clock::ClockSelect::get_clock();
-//let loop_max = match c {
-//clock::ClockSelect::OSC20M => 202,
-//clock::ClockSelect::OSCULP32K => 32,
-//clock::ClockSelect::XOSC32K => 32,
-//clock::ClockSelect::EXTCLK => todo!(),
-//};
+impl DelayUs for Delay {
+    type Error = !;
 
-//for _ in 0..ms {
-//for _ in 0..loop_max {
-//unsafe { core::arch::asm!("nop") };
-//}
-//}
-//}
-//}
+
+    fn delay_us(&mut self, us: u32) -> Result<(), Self::Error> {
+        // TODO this is broke as hell
+        let c = clock::ClockSelect::get_clock();
+        let loop_max = match c {
+            clock::ClockSelect::OSC20M => 202,
+            clock::ClockSelect::OSCULP32K => 32,
+            clock::ClockSelect::XOSC32K => 32,
+            clock::ClockSelect::EXTCLK => todo!(),
+        };
+
+        for _ in 0..us {
+            for _ in 0..loop_max {
+                unsafe { core::arch::asm!("nop") };
+            }
+        }
+
+        Ok(())
+    }
+}

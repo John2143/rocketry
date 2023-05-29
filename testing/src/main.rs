@@ -21,7 +21,7 @@ use atmega4809_hal::usart::{USART, USART1, USART3, BAUD9600};
 use atmega4809_hal::Delay;
 use avr_alloc::AVRAlloc;
 
-use icm20948::ICMI2C;
+//use icm20948::ICMI2C;
 use testing::sleep;
 
 #[global_allocator]
@@ -91,14 +91,14 @@ pub fn test_bme() {
     // let mut bme280 = BME280::new(i2c_bus, bme280_i2c_addr, Delay);
 
     // initialize the sensor
-    bme.init().unwrap();
+    bme.init(&mut Delay).unwrap();
 
     // measure temperature, pressure, and humidity
-    let measurements = bme.measure().unwrap();
+    let measurements = bme.measure(&mut Delay).unwrap();
 
-    ufmt::uwrite!(STDOUT, "Relative Humidity = {}%", measurements.humidity).unwrap();
-    ufmt::uwrite!(STDOUT, "Temperature = {} deg C", measurements.temperature).unwrap();
-    ufmt::uwrite!(STDOUT, "Pressure = {} pascals", measurements.pressure).unwrap();
+    ufmt::uwrite!(STDOUT, "Relative Humidity = {}%", measurements.humidity as u32).unwrap();
+    ufmt::uwrite!(STDOUT, "Temperature = {} deg C", measurements.temperature as u32).unwrap();
+    ufmt::uwrite!(STDOUT, "Pressure = {} pascals", measurements.pressure as u32).unwrap();
 }
 
 fn setup_pwm() {
@@ -131,15 +131,15 @@ fn test_pwm() {
     }
 }
 
-fn test_icm() {
-    ufmt::uwrite!(STDOUT, "Starting to measure {:x}\r\n", 0x69).unwrap();
-    let icm: ICMI2C<I2C, atmega4809_hal::i2c::I2CError, 0x69> = ICMI2C::new(&mut I2C).unwrap();
-    loop {
-        let v = icm.get_values_accel_gyro(&mut I2C).unwrap();
+//fn test_icm() {
+    //ufmt::uwrite!(STDOUT, "Starting to measure {:x}\r\n", 0x69).unwrap();
+    //let icm: ICMI2C<I2C, atmega4809_hal::i2c::I2CError, 0x69> = ICMI2C::new(&mut I2C).unwrap();
+    //loop {
+        //let v = icm.get_values_accel_gyro(&mut I2C).unwrap();
 
-        ufmt::uwrite!(STDOUT, "{:?}\r\n", v).unwrap();
-    }
-}
+        //ufmt::uwrite!(STDOUT, "{:?}\r\n", v).unwrap();
+    //}
+//}
 
 fn test_ble() {
     Stdout::transact(b"Starting BLE Tets\r\n", &mut []);
@@ -159,14 +159,14 @@ fn test_spi() {
     SPI::setup(false, false, spi::Polarity::P0);
     ufmt::uwrite!(STDOUT, "SPI Setup Complete\r\n").unwrap();
     let mut test = [1, 2, 3, 4u8];
-    match SPI.transfer(&mut test) {
-        Ok(v) => {
-            ufmt::uwrite!(STDOUT, "OK\r\n").unwrap();
-        }
-        Err(e) => {
-            ufmt::uwrite!(STDOUT, "Err {:?}\r\n", e).unwrap();
-        }
-    }
+    //match SPI.transfer(&mut test) {
+        //Ok(v) => {
+            //ufmt::uwrite!(STDOUT, "OK\r\n").unwrap();
+        //}
+        //Err(e) => {
+            //ufmt::uwrite!(STDOUT, "Err {:?}\r\n", e).unwrap();
+        //}
+    //}
     ufmt::uwrite!(STDOUT, "Transfer Complete\r\n").unwrap();
 }
 
