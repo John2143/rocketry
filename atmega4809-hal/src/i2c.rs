@@ -123,49 +123,6 @@ impl I2C {
         }
     }
 
-    pub fn write(address: u8, data: &[u8]) -> Result<(), I2CError> {
-        let pre_enable = unsafe { I2C::TWI0.offset(0x03).read_volatile() };
-        //turn on chip
-        unsafe { I2C::TWI0.offset(0x03).write_volatile(pre_enable | 1) };
-
-        Self::wait_for_bus();
-        unsafe { I2C::TWI0.offset(0x07).write_volatile(address << 1 | 0) };
-
-        let status = Self::wait_wif();
-
-        if status.rxack() == CK::NACK {
-            //Case M3: Address Packet " ", Not ACK by client
-            return Err(I2CError::NACK);
-        } else if status.arblost() {
-            //Case M4: Error
-            return Err(I2CError::ArbLost);
-        } else if status.rxack() == CK::ACK && status.clkhld() {
-            //Case M1: Address Packet Transmit Complete, Dir bit set 0
-            //
-            //prepare to transmit data
-        } else {
-            //unreachable!()
-            return Err(I2CError::ArbLost);
-        }
-
-        if data.len() >= 1 {
-            let (last, rest) = data.split_last().unwrap();
-            for (i, c) in rest.iter().enumerate() {
-                match Self::write_byte(*c) {
-                    Ok(_) => {}
-                    Err(I2CError::NACK) => return Err(I2CError::PartialTransmit(i as u8)),
-                    Err(e) => return Err(e),
-                }
-            }
-            Self::write_last_byte(*last)?;
-        } else {
-        }
-
-        //turn off chip
-        unsafe { I2C::TWI0.offset(0x03).write_volatile(pre_enable | 0) };
-        return Ok(());
-    }
-
     pub fn write_byte(data: u8) -> Result<(), I2CError> {
         unsafe { I2C::TWI0.offset(0x08).write_volatile(data) };
         let status = Self::wait_wif();
@@ -361,14 +318,54 @@ impl BusStatus {
 //}
 impl embedded_hal::i2c::blocking::I2c for I2C {
     fn read(&mut self, address: u8, buffer: &mut [u8]) -> Result<(), Self::Error> {
-        todo!()
+        Self::read_to_buf(address, buffer)
     }
 
-    fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), Self::Error> {
-        todo!()
+    fn write(&mut self, address: u8, data: &[u8]) -> Result<(), Self::Error> {
+        let pre_enable = unsafe { I2C::TWI0.offset(0x03).read_volatile() };
+        //turn on chip
+        unsafe { I2C::TWI0.offset(0x03).write_volatile(pre_enable | 1) };
+
+        Self::wait_for_bus();
+        unsafe { I2C::TWI0.offset(0x07).write_volatile(address << 1 | 0) };
+
+        let status = Self::wait_wif();
+
+        if status.rxack() == CK::NACK {
+            //Case M3: Address Packet " ", Not ACK by client
+            return Err(I2CError::NACK);
+        } else if status.arblost() {
+            //Case M4: Error
+            return Err(I2CError::ArbLost);
+        } else if status.rxack() == CK::ACK && status.clkhld() {
+            //Case M1: Address Packet Transmit Complete, Dir bit set 0
+            //
+            //prepare to transmit data
+        } else {
+            //unreachable!()
+            return Err(I2CError::ArbLost);
+        }
+
+        if data.len() >= 1 {
+            let (last, rest) = data.split_last().unwrap();
+            for (i, c) in rest.iter().enumerate() {
+                match Self::write_byte(*c) {
+                    Ok(_) => {}
+                    Err(I2CError::NACK) => return Err(I2CError::PartialTransmit(i as u8)),
+                    Err(e) => return Err(e),
+                }
+            }
+            Self::write_last_byte(*last)?;
+        } else {
+        }
+
+        //turn off chip
+        unsafe { I2C::TWI0.offset(0x03).write_volatile(pre_enable | 0) };
+
+        Ok(())
     }
 
-    fn write_iter<B>(&mut self, address: u8, bytes: B) -> Result<(), Self::Error>
+    fn write_iter<B>(&mut self, _address: u8, _bytes: B) -> Result<(), Self::Error>
         where
             B: IntoIterator<Item = u8> {
         todo!()
@@ -376,18 +373,18 @@ impl embedded_hal::i2c::blocking::I2c for I2C {
 
     fn write_read(
             &mut self,
-            address: u8,
-            bytes: &[u8],
-            buffer: &mut [u8],
+            _address: u8,
+            _bytes: &[u8],
+            _buffer: &mut [u8],
         ) -> Result<(), Self::Error> {
         todo!()
     }
 
     fn write_iter_read<B>(
             &mut self,
-            address: u8,
-            bytes: B,
-            buffer: &mut [u8],
+            _address: u8,
+            _bytes: B,
+            _buffer: &mut [u8],
         ) -> Result<(), Self::Error>
         where
             B: IntoIterator<Item = u8> {
@@ -396,18 +393,17 @@ impl embedded_hal::i2c::blocking::I2c for I2C {
 
     fn transaction<'a>(
             &mut self,
-            address: u8,
-            operations: &mut [embedded_hal::i2c::blocking::Operation<'a>],
+            _address: u8,
+            _operations: &mut [embedded_hal::i2c::blocking::Operation<'a>],
         ) -> Result<(), Self::Error> {
         todo!()
     }
 
-    fn transaction_iter<'a, O>(&mut self, address: u8, operations: O) -> Result<(), Self::Error>
+    fn transaction_iter<'a, O>(&mut self, _address: u8, _operations: O) -> Result<(), Self::Error>
         where
             O: IntoIterator<Item = embedded_hal::i2c::blocking::Operation<'a>> {
         todo!()
     }
-
 }
 
 impl embedded_hal::i2c::ErrorType for I2C {
