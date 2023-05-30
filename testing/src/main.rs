@@ -11,8 +11,6 @@ pub mod avr_alloc;
 pub mod ints;
 pub mod testing;
 
-use core::convert::TryInto;
-
 use atmega4809_hal::clock::{self, ClockPrescaler, ClockSelect};
 use atmega4809_hal::gpio::{GPIO, ISC};
 use atmega4809_hal::i2c::I2C;
@@ -20,6 +18,7 @@ use atmega4809_hal::pwm::PWM;
 use atmega4809_hal::usart::{USART, USART1, USART3, BAUD9600};
 use atmega4809_hal::Delay;
 use avr_alloc::AVRAlloc;
+use embedded_hal::delay::blocking::DelayUs;
 
 //use icm20948::ICMI2C;
 use testing::sleep;
@@ -29,6 +28,10 @@ static ALLOCATOR: AVRAlloc = AVRAlloc::new();
 
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
+    let _ = ufmt::uwrite!(STDOUT, "PANIC!\r\n");
+    let l = _info.location().unwrap().line();
+    let f = _info.location().unwrap().file();
+    let _ = ufmt::uwrite!(STDOUT, "{} {}\r\n", l, f);
     loop {
         ONBOARD_LED.output_high();
         //poweroff
@@ -48,7 +51,7 @@ const ONBOARD_LED: GPIO = GPIO::PORTE(2);
 const BRIGHT_LED: GPIO = GPIO::PORTA(0);
 const PWM_PIN: GPIO = GPIO::PORTB(1);
 
-pub fn test_nau() {
+fn test_nau() {
     //let mut v = nau7802::Nau7802::new_with_settings(
         //I2C,
         //nau7802::Ldo::L3v3,
@@ -79,9 +82,9 @@ pub fn test_nau() {
     //}
 }
 
-pub fn test_bme() {
+fn test_bme() {
     //let b = bme280::i2c::BME280::new(I2C, 0x77);
-    let mut bme = bme280::i2c::BME280::new(I2C, 0x77);
+    let mut bme = bme280::i2c::BME280::new_secondary(I2C);
 
     // or, initialize the BME280 using the secondary I2C address 0x77
     // let mut bme280 = BME280::new_secondary(i2c_bus, Delay);
@@ -90,11 +93,41 @@ pub fn test_bme() {
     // let bme280_i2c_addr = 0x88;
     // let mut bme280 = BME280::new(i2c_bus, bme280_i2c_addr, Delay);
 
+    ufmt::uwrite!(STDOUT, "BME Init Start\r\n").unwrap();
     // initialize the sensor
     bme.init(&mut Delay).unwrap();
+    ufmt::uwrite!(STDOUT, "BME Init Complete, starting base measure\r\n").unwrap();
+
+    Delay.delay_ms(1).unwrap();
 
     // measure temperature, pressure, and humidity
-    let measurements = bme.measure(&mut Delay).unwrap();
+    let measurements = match bme.measure(&mut Delay) {
+        Ok(m) => m,
+        Err(bme280::Error::CompensationFailed) => {
+            ufmt::uwrite!(STDOUT, "BME Compensation Failed\r\n").unwrap();
+            return;
+        },
+        Err(bme280::Error::Bus(_)) => {
+            ufmt::uwrite!(STDOUT, "BME BUS\r\n").unwrap();
+            return;
+        },
+        Err(bme280::Error::InvalidData) => {
+            ufmt::uwrite!(STDOUT, "BME Invalid Data\r\n").unwrap();
+            return;
+        },
+        Err(bme280::Error::NoCalibrationData) => {
+            ufmt::uwrite!(STDOUT, "BME No Calibration Data\r\n").unwrap();
+            return;
+        },
+        Err(bme280::Error::UnsupportedChip) => {
+            ufmt::uwrite!(STDOUT, "BME Unsupported Chip\r\n").unwrap();
+            return;
+        },
+        Err(bme280::Error::Delay) => {
+            ufmt::uwrite!(STDOUT, "BME Delay\r\n").unwrap();
+            return;
+        },
+    };
 
     ufmt::uwrite!(STDOUT, "Relative Humidity = {}%", measurements.humidity as u32).unwrap();
     ufmt::uwrite!(STDOUT, "Temperature = {} deg C", measurements.temperature as u32).unwrap();
@@ -200,15 +233,11 @@ pub fn real_main() {
     ONBOARD_LED.pin_ctrl_isc(&ISC::IntDisable);
     BRIGHT_LED.output_enable();
     BRIGHT_LED.pin_ctrl_isc(&ISC::IntDisable);
-    sleep(0xffff);
-
-    //testing::blink_led();
-
     ONBOARD_LED.output_low();
     BRIGHT_LED.output_low();
 
     I2C::setup();
-    setup_pwm();
+    //setup_pwm();
     //test_pwm();
     setup_usart();
 
@@ -219,7 +248,13 @@ pub fn real_main() {
     //let ptr2 = x2.as_ptr() as u16;
 
     // Wait for all systems/clocks to update just in case
-    sleep(0x100);
+
+    // Test Floats
+    let s = 3.0;
+    for i in 0..10 {
+        ufmt::uwrite!(STDOUT, "Counting to 10: {}\r\n", i).unwrap();
+        Delay.delay_ms(1000).unwrap();
+    }
 
     //ufmt::uwrite!(STDOUT, "Nice\r\n").unwrap();
     //ufmt::uwrite!(STDOUT, "Test Heaps: 1=0x{:x} 2=0x{:x}\r\n", ptr, ptr2).unwrap();
@@ -227,7 +262,7 @@ pub fn real_main() {
 
     ufmt::uwrite!(STDOUT, "Startup complete...\r\n").unwrap();
 
-    test_bme();
+    //test_bme();
     //test_ble();
     //test_nau();
     //test_icm();

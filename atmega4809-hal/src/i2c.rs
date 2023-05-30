@@ -373,11 +373,13 @@ impl embedded_hal::i2c::blocking::I2c for I2C {
 
     fn write_read(
             &mut self,
-            _address: u8,
-            _bytes: &[u8],
-            _buffer: &mut [u8],
+            address: u8,
+            bytes: &[u8],
+            buffer: &mut [u8],
         ) -> Result<(), Self::Error> {
-        todo!()
+        self.write(address, bytes)?;
+        self.read(address, buffer)?;
+        Ok(())
     }
 
     fn write_iter_read<B>(

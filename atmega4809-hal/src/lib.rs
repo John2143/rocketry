@@ -72,19 +72,17 @@ impl DelayUs for Delay {
 
 
     fn delay_us(&mut self, us: u32) -> Result<(), Self::Error> {
-        // TODO this is broke as hell
+        // TODO this is broke as hell but close enough
         let c = clock::ClockSelect::get_clock();
-        let loop_max = match c {
-            clock::ClockSelect::OSC20M => 202,
+        let us_per_nop = match c {
+            clock::ClockSelect::OSC20M => 5,
             clock::ClockSelect::OSCULP32K => 32,
             clock::ClockSelect::XOSC32K => 32,
             clock::ClockSelect::EXTCLK => todo!(),
         };
 
-        for _ in 0..us {
-            for _ in 0..loop_max {
-                unsafe { core::arch::asm!("nop") };
-            }
+        for _ in 0..(us / us_per_nop) {
+            unsafe { core::arch::asm!("nop") };
         }
 
         Ok(())

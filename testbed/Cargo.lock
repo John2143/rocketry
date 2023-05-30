@@ -16,7 +16,7 @@ name = "atmega4809-hal"
 version = "0.1.0"
 dependencies = [
  "atmega-hal",
- "embedded-hal",
+ "embedded-hal 1.0.0-alpha.7",
  "nb 1.0.0",
  "ufmt 0.2.0",
 ]
@@ -39,7 +39,7 @@ source = "git+https://github.com/Rahix/avr-hal.git#4c9c44c314eb061ee20556ef10d45
 dependencies = [
  "avr-device",
  "cfg-if 0.1.10",
- "embedded-hal",
+ "embedded-hal 0.2.7",
  "embedded-storage",
  "nb 0.1.3",
  "paste",
@@ -83,6 +83,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-hal"
+version = "1.0.0-alpha.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93cc714edeae73aa1ff259af4498595360b2992e0e9c59801873ed198a7f2216"
+dependencies = [
+ "nb 1.0.0",
+]
+
+[[package]]
 name = "embedded-storage"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -94,7 +103,7 @@ version = "0.1.0-alpha"
 source = "git+https://github.com/amiraeva/nau7802-rs?rev=83465132eefb763829b8c2127f0a2a87fc2278eb#83465132eefb763829b8c2127f0a2a87fc2278eb"
 dependencies = [
  "byteorder",
- "embedded-hal",
+ "embedded-hal 0.2.7",
  "nb 1.0.0",
 ]
 

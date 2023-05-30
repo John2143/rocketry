@@ -14,6 +14,7 @@ bench = false
 [dependencies]
 atmega4809-hal = { path = "../atmega4809-hal" }
 bme280 = "0.4.4"
+embedded-hal = "1.0.0-alpha.7"
 #icm20948 = "0.0.1"
 #nau7802 = { git = "https://github.com/amiraeva/nau7802-rs", rev = "83465132eefb763829b8c2127f0a2a87fc2278eb" }
 ufmt = "0.2.0"
